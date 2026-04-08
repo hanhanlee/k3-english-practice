@@ -1048,15 +1048,19 @@ function PhonicsQuiz({ speak }) {
 // ══════════════════════════════════════════════════════
 function RhymeCard({ rhyme }) {
   const [active, setActive] = useState(null);
+  const [playingAll, setPlayingAll] = useState(false);
   const audioRef = useRef(null);
+  const seqIdRef = useRef(0);
 
   const stopCurrent = () => {
+    seqIdRef.current++;           // cancel any running sequence
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
       audioRef.current = null;
     }
     setActive(null);
+    setPlayingAll(false);
   };
 
   const playAudio = (src, key) => {
@@ -1064,12 +1068,39 @@ function RhymeCard({ rhyme }) {
     const audio = new Audio(src);
     audioRef.current = audio;
     setActive(key);
-    audio.onended = () => setActive(null);
-    audio.onerror = () => setActive(null);
+    audio.onended = () => { audioRef.current = null; setActive(null); };
+    audio.onerror = () => { audioRef.current = null; setActive(null); };
     audio.play().catch(console.warn);
   };
 
-  const isAllPlaying = active === 'all';
+  const playAll = () => {
+    seqIdRef.current++;
+    const myId = seqIdRef.current;
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+    setPlayingAll(true);
+
+    // full audio (title) → every line in order
+    const srcs = [rhyme.fullAudio, ...rhyme.lines.map(l => l.audio)];
+    const keys = ['title', ...rhyme.lines.map((_, i) => i)];
+    let i = 0;
+
+    const playNext = () => {
+      if (seqIdRef.current !== myId) return;   // stopped externally
+      if (i >= srcs.length) { setActive(null); setPlayingAll(false); return; }
+      const src = srcs[i];
+      const key = keys[i];
+      i++;
+      const audio = new Audio(src);
+      audioRef.current = audio;
+      setActive(key);
+      audio.onended = playNext;
+      audio.onerror = playNext;
+      audio.play().catch(() => playNext());
+    };
+    playNext();
+  };
+
+  const isAllPlaying = playingAll;
   const PURPLE = '#7C3AED';
   const LIGHT  = '#EDE9FE';
 
@@ -1084,7 +1115,7 @@ function RhymeCard({ rhyme }) {
           </div>
         </div>
         <button
-          onClick={() => isAllPlaying ? stopCurrent() : playAudio(rhyme.fullAudio, 'all')}
+          onClick={() => isAllPlaying ? stopCurrent() : playAll()}
           className={`play-all-btn${isAllPlaying ? ' anim-pulse' : ''}`}
           style={{
             background: isAllPlaying ? PURPLE : LIGHT,
