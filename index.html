@@ -88,7 +88,7 @@
       flex: 1 0 auto;
       padding: 10px 12px;
       border-radius: 10px;
-      font-size: clamp(12px, 2.8vw, 15px);
+      font-size: clamp(14px, 3.2vw, 16px);
       font-weight: 800;
       border: none;
       white-space: nowrap;
@@ -139,17 +139,17 @@
       min-height: 40px;           /* accessible touch target */
     }
     .abtn-full { width: 100%; justify-content: center; }
-    .abtn-sm { padding: 7px 12px;  font-size: 14px; }
-    .abtn-md { padding: 10px 16px; font-size: 16px; }
-    .abtn-lg { padding: 12px 22px; font-size: 18px; }
-    .abtn-icon-sm { font-size: 15px; }
-    .abtn-icon-md { font-size: 19px; }
-    .abtn-icon-lg { font-size: 22px; }
+    .abtn-sm { padding: 7px 12px;  font-size: 16px; }
+    .abtn-md { padding: 10px 16px; font-size: 18px; }
+    .abtn-lg { padding: 12px 22px; font-size: 20px; }
+    .abtn-icon-sm { font-size: 17px; }
+    .abtn-icon-md { font-size: 21px; }
+    .abtn-icon-lg { font-size: 24px; }
     @media (max-width: 480px) {
-      .abtn-sm { padding: 6px 10px; font-size: 13px; }
-      .abtn-md { padding: 9px 13px;  font-size: 15px; }
-      .abtn-icon-sm { font-size: 13px; }
-      .abtn-icon-md { font-size: 17px; }
+      .abtn-sm { padding: 6px 10px; font-size: 15px; }
+      .abtn-md { padding: 9px 13px;  font-size: 17px; }
+      .abtn-icon-sm { font-size: 15px; }
+      .abtn-icon-md { font-size: 19px; }
     }
 
     /* ── Part 1 – Greeting ──────────────────────────────── */
@@ -164,9 +164,9 @@
       display: flex; align-items: center; justify-content: center; font-size: 22px;
     }
     .chat-bubble { border-radius: 16px; padding: 11px 14px; max-width: 80%; }
-    .chat-bubble-name { font-size: 12px; font-weight: 700; margin-bottom: 5px; }
+    .chat-bubble-name { font-size: 14px; font-weight: 700; margin-bottom: 5px; }
     .chat-bubble-text {
-      font-size: clamp(14px, 3.8vw, 19px);
+      font-size: clamp(17px, 4.5vw, 22px);
       font-weight: 800; color: #1e293b; line-height: 1.5; margin-bottom: 10px;
     }
     @media (max-width: 480px) {
@@ -179,8 +179,8 @@
       background: #FFF7ED; border-radius: 14px;
       padding: 16px; border: 2px solid #FED7AA;
     }
-    .response-section-title { font-size: 16px; font-weight: 900; color: #EA580C; margin-bottom: 3px; }
-    .response-section-sub   { font-size: 13px; color: #92400E; font-weight: 700; margin-bottom: 12px; }
+    .response-section-title { font-size: 18px; font-weight: 900; color: #EA580C; margin-bottom: 3px; }
+    .response-section-sub   { font-size: 15px; color: #92400E; font-weight: 700; margin-bottom: 12px; }
     .response-grid { display: flex; flex-wrap: wrap; gap: 8px; }
     @media (max-width: 480px) {
       .response-section { padding: 12px; }
@@ -206,24 +206,24 @@
       border-radius: 11px; padding: 9px 13px;
       border: 2px solid #BFDBFE; min-width: 0;
     }
-    .teacher-q-label { font-size: 12px; font-weight: 700; color: #2563EB; margin-bottom: 4px; }
-    .teacher-q-text  { font-size: clamp(14px, 3.5vw, 18px); font-weight: 800; color: #1e293b; line-height: 1.4; }
+    .teacher-q-label { font-size: 14px; font-weight: 700; color: #2563EB; margin-bottom: 4px; }
+    .teacher-q-text  { font-size: clamp(17px, 4vw, 21px); font-weight: 800; color: #1e293b; line-height: 1.4; }
     @media (max-width: 520px) {
       .teacher-q-row { flex-direction: column; gap: 8px; }
     }
 
-    .q-hint { font-size: 13px; color: #94a3b8; font-weight: 700; font-style: italic; margin-bottom: 12px; }
+    .q-hint { font-size: 15px; color: #94a3b8; font-weight: 700; font-style: italic; margin-bottom: 12px; }
 
     .opt-wrap  { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
     .opt-btn   {
       border-radius: 11px; padding: 9px 14px;
-      font-size: clamp(14px, 3.5vw, 17px); font-weight: 800;
+      font-size: clamp(16px, 4vw, 19px); font-weight: 800;
       display: flex; align-items: center; gap: 6px;
       transition: all .15s; cursor: pointer;
       font-family: 'Nunito', sans-serif; min-height: 44px;
       border-width: 2.5px; border-style: solid;
     }
-    .opt-btn-emoji { font-size: clamp(18px, 4vw, 22px); }
+    .opt-btn-emoji { font-size: clamp(20px, 4.5vw, 25px); }
 
     .result-row {
       background: #F0FDF4; border: 2px solid #86EFAC;
@@ -339,8 +339,8 @@
     }
     .rhyme-hdr-info { display: flex; align-items: center; gap: 8px; }
     .rhyme-hdr-emoji { font-size: 24px; }
-    .rhyme-hdr-title { font-size: clamp(16px, 4vw, 20px); font-weight: 900; color: #1e293b; }
-    .rhyme-hdr-ref   { font-size: 11px; color: #94a3b8; font-weight: 700; }
+    .rhyme-hdr-title { font-size: clamp(18px, 4.5vw, 22px); font-weight: 900; color: #1e293b; }
+    .rhyme-hdr-ref   { font-size: 13px; color: #94a3b8; font-weight: 700; }
 
     .play-all-btn {
       border-radius: 10px; padding: 8px 14px;
@@ -364,7 +364,7 @@
       border-width: 2.5px; border-style: solid;
     }
     .lyric-text {
-      font-size: clamp(14px, 3.5vw, 17px);
+      font-size: clamp(16px, 4vw, 20px);
       font-weight: 700; line-height: 1.6; white-space: pre-line;
     }
 
@@ -376,7 +376,7 @@
     }
     .song-emoji { font-size: clamp(24px, 5vw, 30px); flex-shrink: 0; }
     .song-info  { flex: 1; min-width: 0; }
-    .song-title { font-size: clamp(15px, 3.8vw, 19px); font-weight: 900; color: #1e293b; }
+    .song-title { font-size: clamp(17px, 4.2vw, 21px); font-weight: 900; color: #1e293b; }
     .song-ref   { font-size: 11px; color: #94a3b8; font-weight: 700; margin-top: 2px; }
     .song-play-btn {
       border-radius: 10px; padding: 8px 14px;
@@ -487,7 +487,7 @@ const DATA = {
         { job: 'chef',           article: 'a',  emoji: '👨‍🍳', audio: 'ref/conversation/conv_q3_chef.mp3'         },
         { job: 'doctor',         article: 'a',  emoji: '👨‍⚕️', audio: 'ref/conversation/conv_q3_doctor.mp3'       },
         { job: 'astronaut',      article: 'an', emoji: '🚀',  audio: 'ref/conversation/conv_q3_astronaut.mp3'    },
-        { job: 'teacher',        article: 'a',  emoji: '👩‍🏫', audio: 'ref/conversation/conv_q3_teacher.mp3'      },
+        { job: 'teacher',        article: 'a',  emoji: '👨‍🏫', audio: 'ref/conversation/conv_q3_teacher.mp3'      },
         { job: 'firefighter',    article: 'a',  emoji: '🧑‍🚒', audio: 'ref/conversation/conv_q3_firefighter.mp3'  },
         { job: 'baseball player',article: 'a',  emoji: '⚾',  audio: 'ref/conversation/conv_q3_baseballplayer.mp3'},
         { job: 'mail carrier',   article: 'a',  emoji: '📬', audio: 'ref/conversation/conv_q3_mailcarrier.mp3'  },
@@ -740,7 +740,7 @@ function Part1() {
           const isT     = line.role === 'T';
           const color   = isT ? T : S;
           const bgLight = isT ? '#EFF6FF' : '#FFF7ED';
-          const icon    = isT ? '👩‍🏫' : '🧒';
+          const icon    = isT ? '👨‍🏫' : '🧒';
           const name    = isT ? 'Teacher Nick' : 'Student';
           return (
             <div key={i} className={`bubble-row ${isT ? 'is-teacher' : 'is-student'}`}>
@@ -814,7 +814,7 @@ function QuestionBlock({ q, speak, selected, onSelect }) {
       <div className="teacher-q-row">
         <div className="teacher-q-box">
           <div className="teacher-q-label">
-            👩‍🏫 Teacher asks &nbsp;<span style={{ opacity: .6 }}>{q.ref}</span>
+            👨‍🏫 Teacher asks &nbsp;<span style={{ opacity: .6 }}>{q.ref}</span>
           </div>
           <div className="teacher-q-text">{q.qText}</div>
         </div>
