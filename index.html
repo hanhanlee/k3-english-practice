@@ -2,59 +2,392 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#f0f4ff" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <title>K3 English Phone Practice</title>
   <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet" />
   <style>
+    /* ── Reset ─────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { -webkit-text-size-adjust: 100%; }
 
     body {
       font-family: 'Nunito', sans-serif;
       background: #f0f4ff;
       min-height: 100vh;
+      min-height: 100dvh;
       color: #1e293b;
+      -webkit-tap-highlight-color: transparent;
     }
 
-    button { font-family: 'Nunito', sans-serif; cursor: pointer; }
+    button {
+      font-family: 'Nunito', sans-serif;
+      cursor: pointer;
+      touch-action: manipulation;        /* kill 300ms iOS delay */
+      -webkit-tap-highlight-color: transparent;
+    }
     button:focus-visible { outline: 3px solid #6366f1; outline-offset: 3px; }
 
-    /* Tab bar */
-    .tab-bar {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
+    /* ── App shell ──────────────────────────────────────── */
+    .app-wrap {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 0 16px calc(28px + env(safe-area-inset-bottom));
+    }
+    @media (max-width: 480px) {
+      .app-wrap { padding: 0 10px calc(20px + env(safe-area-inset-bottom)); }
     }
 
-    /* Phonics two-column grid */
+    /* ── Header ─────────────────────────────────────────── */
+    .app-header { text-align: center; padding: 24px 16px 18px; }
+    .app-header-crown { font-size: 42px; line-height: 1; display: block; }
+    .app-header-h1 {
+      font-size: clamp(19px, 5vw, 32px);
+      font-weight: 900; color: #1e293b;
+      margin: 8px 0 4px; line-height: 1.2;
+    }
+    .app-header-sub {
+      font-size: clamp(12px, 3vw, 15px);
+      color: #64748b; font-weight: 700;
+    }
+    @media (max-width: 480px) {
+      .app-header { padding: 14px 8px 12px; }
+      .app-header-crown { font-size: 32px; }
+    }
+
+    /* ── Tab nav — sticky, never wraps, scrollable ──────── */
+    .tab-nav {
+      background: #fff;
+      border-radius: 14px;
+      padding: 6px;
+      box-shadow: 0 2px 14px rgba(0,0,0,.08);
+      margin-bottom: 12px;
+      position: sticky;
+      top: 6px;
+      z-index: 100;
+    }
+    .tab-bar {
+      display: flex;
+      gap: 4px;
+      overflow-x: auto;
+      overflow-y: hidden;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+      flex-wrap: nowrap;                 /* key: never wrap */
+      scroll-snap-type: x proximity;
+    }
+    .tab-bar::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      flex: 1 0 auto;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: clamp(12px, 2.8vw, 15px);
+      font-weight: 800;
+      border: none;
+      white-space: nowrap;
+      scroll-snap-align: start;
+      transition: background .18s, color .18s;
+      min-height: 40px;
+    }
+    @media (max-width: 360px) {
+      .tab-btn { flex: 0 0 auto; } /* very small screens: natural width */
+    }
+
+    /* ── Content card ───────────────────────────────────── */
+    .content-card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 24px 20px;
+      box-shadow: 0 4px 28px rgba(0,0,0,.09);
+    }
+    @media (max-width: 480px) {
+      .content-card { border-radius: 16px; padding: 16px 13px; }
+    }
+
+    /* ── Section header ─────────────────────────────────── */
+    .sec-hdr { margin-bottom: 20px; }
+    .sec-hdr-title {
+      font-size: clamp(18px, 4.5vw, 27px);
+      font-weight: 900; color: #1e293b;
+      display: flex; align-items: center; gap: 8px; line-height: 1.2;
+    }
+    .sec-hdr-sub {
+      font-size: clamp(12px, 3vw, 15px);
+      color: #64748b; font-weight: 700; margin-top: 4px;
+    }
+
+    /* ── Audio / Speak buttons ──────────────────────────── */
+    .abtn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border-radius: 10px;
+      font-weight: 800;
+      font-family: 'Nunito', sans-serif;
+      transition: background .15s, color .15s, transform .1s;
+      white-space: nowrap;
+      border-width: 2.5px;
+      border-style: solid;
+      flex-shrink: 0;
+      min-height: 40px;           /* accessible touch target */
+    }
+    .abtn-full { width: 100%; justify-content: center; }
+    .abtn-sm { padding: 7px 12px;  font-size: 14px; }
+    .abtn-md { padding: 10px 16px; font-size: 16px; }
+    .abtn-lg { padding: 12px 22px; font-size: 18px; }
+    .abtn-icon-sm { font-size: 15px; }
+    .abtn-icon-md { font-size: 19px; }
+    .abtn-icon-lg { font-size: 22px; }
+    @media (max-width: 480px) {
+      .abtn-sm { padding: 6px 10px; font-size: 13px; }
+      .abtn-md { padding: 9px 13px;  font-size: 15px; }
+      .abtn-icon-sm { font-size: 13px; }
+      .abtn-icon-md { font-size: 17px; }
+    }
+
+    /* ── Part 1 – Greeting ──────────────────────────────── */
+    .dialogue { display: flex; flex-direction: column; gap: 14px; margin-bottom: 22px; }
+
+    .bubble-row { display: flex; align-items: flex-start; gap: 10px; }
+    .bubble-row.is-teacher { flex-direction: row; }
+    .bubble-row.is-student { flex-direction: row-reverse; }
+
+    .chat-avatar {
+      width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 22px;
+    }
+    .chat-bubble { border-radius: 16px; padding: 11px 14px; max-width: 80%; }
+    .chat-bubble-name { font-size: 12px; font-weight: 700; margin-bottom: 5px; }
+    .chat-bubble-text {
+      font-size: clamp(14px, 3.8vw, 19px);
+      font-weight: 800; color: #1e293b; line-height: 1.5; margin-bottom: 10px;
+    }
+    @media (max-width: 480px) {
+      .chat-avatar { width: 36px; height: 36px; font-size: 18px; }
+      .chat-bubble { max-width: 85%; padding: 9px 11px; }
+      .chat-bubble-text { margin-bottom: 8px; }
+    }
+
+    .response-section {
+      background: #FFF7ED; border-radius: 14px;
+      padding: 16px; border: 2px solid #FED7AA;
+    }
+    .response-section-title { font-size: 16px; font-weight: 900; color: #EA580C; margin-bottom: 3px; }
+    .response-section-sub   { font-size: 13px; color: #92400E; font-weight: 700; margin-bottom: 12px; }
+    .response-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+    @media (max-width: 480px) {
+      .response-section { padding: 12px; }
+      .response-grid { gap: 6px; }
+    }
+
+    /* ── Part 2 – Conversation ──────────────────────────── */
+    .q-blocks { display: flex; flex-direction: column; gap: 20px; }
+
+    .q-block {
+      background: #fff; border-radius: 16px;
+      padding: 18px; box-shadow: 0 2px 18px rgba(0,0,0,.07);
+    }
+    @media (max-width: 480px) {
+      .q-block { padding: 13px; border-radius: 13px; }
+      .q-blocks { gap: 14px; }
+    }
+
+    /* Teacher question row — stacks vertically on narrow screens */
+    .teacher-q-row { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px; }
+    .teacher-q-box {
+      flex: 1; background: #EFF6FF;
+      border-radius: 11px; padding: 9px 13px;
+      border: 2px solid #BFDBFE; min-width: 0;
+    }
+    .teacher-q-label { font-size: 12px; font-weight: 700; color: #2563EB; margin-bottom: 4px; }
+    .teacher-q-text  { font-size: clamp(14px, 3.5vw, 18px); font-weight: 800; color: #1e293b; line-height: 1.4; }
+    @media (max-width: 520px) {
+      .teacher-q-row { flex-direction: column; gap: 8px; }
+    }
+
+    .q-hint { font-size: 13px; color: #94a3b8; font-weight: 700; font-style: italic; margin-bottom: 12px; }
+
+    .opt-wrap  { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
+    .opt-btn   {
+      border-radius: 11px; padding: 9px 14px;
+      font-size: clamp(14px, 3.5vw, 17px); font-weight: 800;
+      display: flex; align-items: center; gap: 6px;
+      transition: all .15s; cursor: pointer;
+      font-family: 'Nunito', sans-serif; min-height: 44px;
+      border-width: 2.5px; border-style: solid;
+    }
+    .opt-btn-emoji { font-size: clamp(18px, 4vw, 22px); }
+
+    .result-row {
+      background: #F0FDF4; border: 2px solid #86EFAC;
+      border-radius: 11px; padding: 11px 13px;
+      display: flex; align-items: center; gap: 8px; justify-content: space-between;
+      flex-wrap: wrap;
+    }
+    .result-text {
+      font-size: clamp(14px, 3.5vw, 18px);
+      font-weight: 900; color: #15803D; flex: 1; min-width: 0;
+    }
+
+    /* ── Part 3 – Phonics ───────────────────────────────── */
+    .phonics-mode-btns { display: flex; gap: 8px; margin-bottom: 18px; }
+    .phonics-mode-btn  {
+      padding: 9px 18px; border-radius: 10px;
+      font-size: clamp(13px, 3.2vw, 16px); font-weight: 800;
+      font-family: 'Nunito', sans-serif; cursor: pointer;
+      transition: all .15s; min-height: 42px;
+      border-width: 2.5px; border-style: solid;
+    }
+
     .phonics-cols {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 20px;
+      gap: 14px;
     }
-    @media (max-width: 580px) {
-      .phonics-cols { grid-template-columns: 1fr; }
+    @media (max-width: 560px) { .phonics-cols { grid-template-columns: 1fr; gap: 18px; } }
+
+    .phonics-group-hdr {
+      border-radius: 10px; padding: 8px 13px;
+      font-size: clamp(13px, 3vw, 17px); font-weight: 900;
+      text-align: center; margin-bottom: 10px;
+      border-width: 2px; border-style: solid;
     }
 
-    /* Option buttons wrap */
-    .option-wrap {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
+    .phonics-card {
+      background: #fff; border-radius: 13px;
+      padding: 11px 13px; box-shadow: 0 2px 10px rgba(0,0,0,.06);
+      border-width: 2px; border-style: solid;
     }
+    .phonics-card-top {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px;
+    }
+    .phonics-card-word-row { display: flex; align-items: center; gap: 8px; }
+    .phonics-emoji { font-size: clamp(22px, 4.5vw, 30px); }
+    .phonics-word  { font-size: clamp(24px, 5.5vw, 36px); font-weight: 900; color: #1e293b; }
 
-    /* Chunk breakdown row */
     .chunk-row {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 6px;
-      margin-top: 10px;
+      display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: 7px;
+    }
+    .chunk-pill {
+      padding: 4px 10px; border-radius: 7px;
+      font-size: clamp(16px, 3.5vw, 22px); font-weight: 900;
+      border-width: 2.5px; border-style: solid; display: inline-block;
     }
 
-    /* Animations */
+    /* Quiz */
+    .progress-row {
+      display: flex; justify-content: space-between;
+      font-size: 14px; font-weight: 700; color: #64748b; margin-bottom: 12px;
+    }
+    .progress-bar {
+      height: 8px; background: #e2e8f0; border-radius: 99px; margin-bottom: 20px; overflow: hidden;
+    }
+    .progress-fill { height: 100%; border-radius: 99px; transition: width .4s ease; }
+
+    .quiz-card {
+      background: #fff; border-radius: 20px; padding: 24px 16px;
+      text-align: center; box-shadow: 0 4px 24px rgba(0,0,0,.10);
+      margin-bottom: 20px; transition: border-color .2s;
+      border-width: 3px; border-style: solid;
+    }
+    .quiz-emoji    { font-size: clamp(44px, 10vw, 60px); margin-bottom: 8px; display: block; }
+    .quiz-word-row { display: inline-flex; align-items: center; gap: 10px; }
+    .quiz-word     { font-size: clamp(32px, 8vw, 52px); font-weight: 900; color: #1e293b; }
+
+    .quiz-label { font-size: clamp(14px, 3.5vw, 18px); font-weight: 700; color: #64748b; text-align: center; margin-bottom: 14px; }
+    .quiz-ae-row { display: flex; gap: 14px; justify-content: center; }
+    .quiz-ae-btn {
+      border-radius: 16px;
+      width: clamp(100px, 28vw, 138px);
+      padding: 16px 0;
+      font-size: clamp(26px, 7vw, 40px); font-weight: 900;
+      color: #fff; border: none;
+      font-family: 'Nunito', sans-serif; transition: all .15s;
+    }
+
+    .quiz-result { text-align: center; padding: 24px 12px; }
+    .quiz-result-trophy { font-size: clamp(52px, 12vw, 72px); }
+    .quiz-result-score { font-size: clamp(26px, 7vw, 38px); font-weight: 900; margin: 12px 0 6px; }
+    .quiz-result-msg { font-size: clamp(14px, 3.5vw, 19px); color: #64748b; font-weight: 700; margin-bottom: 24px; }
+    .quiz-restart-btn {
+      background: #7C3AED; color: #fff; border: none;
+      border-radius: 14px; padding: 14px 36px;
+      font-size: clamp(17px, 4vw, 22px); font-weight: 900;
+      font-family: 'Nunito', sans-serif; cursor: pointer;
+    }
+
+    /* ── Part 4 – Rhymes & Songs ────────────────────────── */
+    .section-label {
+      font-size: clamp(14px, 3.2vw, 17px); font-weight: 900;
+      margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
+    }
+
+    .rhyme-card {
+      background: #fff; border-radius: 16px;
+      padding: 16px; box-shadow: 0 2px 18px rgba(0,0,0,.08);
+    }
+    .rhyme-hdr {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 10px; margin-bottom: 14px; flex-wrap: wrap;
+    }
+    .rhyme-hdr-info { display: flex; align-items: center; gap: 8px; }
+    .rhyme-hdr-emoji { font-size: 24px; }
+    .rhyme-hdr-title { font-size: clamp(16px, 4vw, 20px); font-weight: 900; color: #1e293b; }
+    .rhyme-hdr-ref   { font-size: 11px; color: #94a3b8; font-weight: 700; }
+
+    .play-all-btn {
+      border-radius: 10px; padding: 8px 14px;
+      font-size: clamp(13px, 3vw, 15px); font-weight: 800;
+      display: flex; align-items: center; gap: 6px;
+      transition: all .15s; white-space: nowrap; cursor: pointer;
+      font-family: 'Nunito', sans-serif; min-height: 38px;
+      border-width: 2.5px; border-style: solid;
+    }
+
+    .lyric-lines { display: flex; flex-direction: column; gap: 5px; }
+    .lyric-line  {
+      display: flex; align-items: center; gap: 9px;
+      border-radius: 10px; padding: 9px 11px; transition: all .2s;
+      border-width: 2px; border-style: solid;
+    }
+    .lyric-play-btn {
+      width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; cursor: pointer; transition: all .15s;
+      border-width: 2.5px; border-style: solid;
+    }
+    .lyric-text {
+      font-size: clamp(14px, 3.5vw, 17px);
+      font-weight: 700; line-height: 1.6; white-space: pre-line;
+    }
+
+    .song-cards { display: flex; flex-direction: column; gap: 9px; }
+    .song-card  {
+      background: #fff; border-radius: 13px; padding: 12px 14px;
+      display: flex; align-items: center; gap: 11px;
+      transition: all .2s; border-width: 2.5px; border-style: solid;
+    }
+    .song-emoji { font-size: clamp(24px, 5vw, 30px); flex-shrink: 0; }
+    .song-info  { flex: 1; min-width: 0; }
+    .song-title { font-size: clamp(15px, 3.8vw, 19px); font-weight: 900; color: #1e293b; }
+    .song-ref   { font-size: 11px; color: #94a3b8; font-weight: 700; margin-top: 2px; }
+    .song-play-btn {
+      border-radius: 10px; padding: 8px 14px;
+      font-size: clamp(13px, 3vw, 15px); font-weight: 800;
+      display: flex; align-items: center; gap: 6px;
+      transition: all .15s; white-space: nowrap; cursor: pointer;
+      font-family: 'Nunito', sans-serif; min-height: 38px;
+      border-width: 2.5px; border-style: solid; flex-shrink: 0;
+    }
+
+    /* ── Animations ─────────────────────────────────────── */
     @keyframes pop {
       0%   { transform: scale(0.85); opacity: 0; }
       70%  { transform: scale(1.06); }
@@ -70,10 +403,9 @@
       40%, 80% { transform: translateX(6px); }
     }
     @keyframes slideUp {
-      from { opacity: 0; transform: translateY(14px); }
+      from { opacity: 0; transform: translateY(12px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-
     .anim-pop    { animation: pop    .3s cubic-bezier(.34,1.56,.64,1) both; }
     .anim-pulse  { animation: pulse  .8s ease infinite; }
     .anim-shake  { animation: shake  .4s ease; }
@@ -255,19 +587,19 @@ const DATA = {
     ],
     songs: [
       { title: 'The Poor King',      emoji: '👑', ref: 'Song 1', audio: 'ref/songs/song_01_poorking.mp3'       },
-      { title: 'Dress Up',           emoji: '👗', ref: 'Song 2', audio: 'ref/songs/song_02_dressup.mp3'          },
-      { title: 'What Shall I Be',    emoji: '🌟', ref: 'Song 3', audio: 'ref/songs/song_03_whatshallibe.mp3'     },
-      { title: 'People in My Town',  emoji: '🏘️', ref: 'Song 4', audio: 'ref/songs/song_04_peopleinmytown.mp3'  },
+      { title: 'Dress Up',           emoji: '👗', ref: 'Song 2', audio: 'ref/songs/song_02_dressup.mp3'        },
+      { title: 'What Shall I Be',    emoji: '🌟', ref: 'Song 3', audio: 'ref/songs/song_03_whatshallibe.mp3'   },
+      { title: 'People in My Town',  emoji: '🏘️', ref: 'Song 4', audio: 'ref/songs/song_04_peopleinmytown.mp3'},
     ],
   },
 };
 
 // ══════════════════════════════════════════════════════
-//  TTS HOOK
+//  TTS HOOK  (logic unchanged)
 // ══════════════════════════════════════════════════════
 function useTTS() {
   const [voices, setVoices] = useState([]);
-  const [speakingId, setSpeakingId] = useState(null); // tracks which element is speaking
+  const [speakingId, setSpeakingId] = useState(null);
   const supported = 'speechSynthesis' in window;
 
   useEffect(() => {
@@ -281,34 +613,27 @@ function useTTS() {
     return () => window.speechSynthesis.removeEventListener('voiceschanged', load);
   }, [supported]);
 
-  // id: any string to track which button is currently speaking
   const speak = useCallback((text, isTeacher, id = 'default') => {
     if (!supported) return;
     window.speechSynthesis.cancel();
     setSpeakingId(id);
-
     const utter = new SpeechSynthesisUtterance(text);
     utter.lang  = 'en-US';
     utter.rate  = isTeacher ? 0.9 : 0.85;
     utter.volume = 1;
-
     const enUS = voices.filter(v => v.lang === 'en-US' || v.lang === 'en_US');
     const enAll = voices.filter(v => v.lang.startsWith('en'));
     const pool  = enUS.length ? enUS : enAll;
-
     if (isTeacher) {
       utter.pitch = 1.0;
-      const v = pool.find(v => /samantha|zira|victoria|karen|moira|google us english/i.test(v.name))
-             || pool[0];
+      const v = pool.find(v => /samantha|zira|victoria|karen|moira|google us english/i.test(v.name)) || pool[0];
       if (v) utter.voice = v;
     } else {
       utter.pitch = 1.2;
-      // try to get a different voice from teacher
       const v = pool.find(v => /alex|daniel|fred|mark|david|george|tom|junior/i.test(v.name))
              || (pool.length > 1 ? pool[pool.length - 1] : pool[0]);
       if (v) utter.voice = v;
     }
-
     utter.onend   = () => setSpeakingId(null);
     utter.onerror = () => setSpeakingId(null);
     window.speechSynthesis.speak(utter);
@@ -326,68 +651,41 @@ function useTTS() {
 //  SHARED COMPONENTS
 // ══════════════════════════════════════════════════════
 
-// Reusable TTS button
+// Context for sharing speakingId
+const SpeakingCtx = React.createContext(null);
+function useSpeakingId() { return React.useContext(SpeakingCtx); }
+
+// TTS button — layout via CSS class, colors inline
 function SpeakBtn({ text, isTeacher, speak, id, label, size = 'md', fullWidth = false }) {
   const { speakingId } = useSpeakingId();
-  const active = speakingId === id;
-  const T_COLOR  = '#2563EB';
-  const S_COLOR  = '#EA580C';
-  const color    = isTeacher ? T_COLOR : S_COLOR;
-  const bgIdle   = isTeacher ? '#EFF6FF' : '#FFF7ED';
-
-  const sizes = {
-    sm: { pad: '8px 14px',  fs: 15, icon: 18 },
-    md: { pad: '11px 20px', fs: 18, icon: 22 },
-    lg: { pad: '15px 28px', fs: 21, icon: 26 },
-  };
-  const s = sizes[size];
-
+  const active  = speakingId === id;
+  const color   = isTeacher ? '#2563EB' : '#EA580C';
+  const bgIdle  = isTeacher ? '#EFF6FF' : '#FFF7ED';
   return (
     <button
       onClick={() => speak(text, isTeacher, id)}
-      className={active ? 'anim-pulse' : ''}
+      className={`abtn abtn-${size}${active ? ' anim-pulse' : ''}${fullWidth ? ' abtn-full' : ''}`}
       style={{
         background: active ? color : bgIdle,
-        border: `2.5px solid ${color}`,
-        borderRadius: 12,
-        padding: s.pad,
-        fontSize: s.fs,
-        fontWeight: 800,
+        borderColor: color,
         color: active ? '#fff' : color,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        width: fullWidth ? '100%' : 'auto',
-        justifyContent: fullWidth ? 'center' : 'flex-start',
-        transition: 'background .15s, color .15s, transform .1s',
         transform: active ? 'scale(.97)' : 'scale(1)',
       }}
     >
-      <span style={{ fontSize: s.icon }}>{active ? '🔊' : '🔈'}</span>
+      <span className={`abtn-icon-${size}`}>{active ? '🔊' : '🔈'}</span>
       {label}
     </button>
   );
 }
 
-// Button that plays a static audio file (MP3)
+// Static MP3 button — layout via CSS class, colors inline
 function AudioBtn({ src, isTeacher, label, size = 'md' }) {
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef(null);
-
-  const T_COLOR = '#2563EB';
-  const S_COLOR = '#EA580C';
-  const color   = isTeacher ? T_COLOR : S_COLOR;
-  const bgIdle  = isTeacher ? '#EFF6FF' : '#FFF7ED';
-
-  const sizes = {
-    sm: { pad: '8px 14px',  fs: 15, icon: 18 },
-    md: { pad: '11px 20px', fs: 18, icon: 22 },
-    lg: { pad: '15px 28px', fs: 21, icon: 26 },
-  };
-  const s = sizes[size];
+  const color  = isTeacher ? '#2563EB' : '#EA580C';
+  const bgIdle = isTeacher ? '#EFF6FF' : '#FFF7ED';
 
   const handleClick = () => {
-    // Stop any currently playing audio first
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -396,37 +694,35 @@ function AudioBtn({ src, isTeacher, label, size = 'md' }) {
     audioRef.current = audio;
     audio.onplay  = () => setPlaying(true);
     audio.onended = () => setPlaying(false);
-    audio.onerror = () => { setPlaying(false); console.warn('Audio failed to load:', src); };
+    audio.onerror = () => { setPlaying(false); console.warn('Audio failed:', src); };
     audio.play().catch(() => setPlaying(false));
   };
 
   return (
     <button
       onClick={handleClick}
-      className={playing ? 'anim-pulse' : ''}
+      className={`abtn abtn-${size}${playing ? ' anim-pulse' : ''}`}
       style={{
         background: playing ? color : bgIdle,
-        border: `2.5px solid ${color}`,
-        borderRadius: 12,
-        padding: s.pad,
-        fontSize: s.fs,
-        fontWeight: 800,
+        borderColor: color,
         color: playing ? '#fff' : color,
-        display: 'flex',
-        alignItems: 'center',
-        gap: 8,
-        transition: 'background .15s, color .15s',
       }}
     >
-      <span style={{ fontSize: s.icon }}>{playing ? '🔊' : '🔈'}</span>
+      <span className={`abtn-icon-${size}`}>{playing ? '🔊' : '🔈'}</span>
       {label}
     </button>
   );
 }
 
-// Context trick to share speakingId without prop-drilling deeply
-const SpeakingCtx = React.createContext(null);
-function useSpeakingId() { return React.useContext(SpeakingCtx); }
+// Section header
+function SectionHeader({ emoji, title, sub }) {
+  return (
+    <div className="sec-hdr">
+      <h2 className="sec-hdr-title">{emoji} {title}</h2>
+      <p className="sec-hdr-sub">{sub}</p>
+    </div>
+  );
+}
 
 // ══════════════════════════════════════════════════════
 //  PART 1 – GREETING
@@ -439,33 +735,26 @@ function Part1() {
     <div>
       <SectionHeader emoji="📞" title="Answering the Telephone" sub="Listen and practice the phone greeting!" />
 
-      {/* Dialogue */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 32 }}>
+      <div className="dialogue">
         {DATA.greeting.lines.map((line, i) => {
-          const isT    = line.role === 'T';
+          const isT     = line.role === 'T';
           const color   = isT ? T : S;
           const bgLight = isT ? '#EFF6FF' : '#FFF7ED';
           const icon    = isT ? '👩‍🏫' : '🧒';
           const name    = isT ? 'Teacher Nick' : 'Student';
           return (
-            <div key={i} style={{ display: 'flex', flexDirection: isT ? 'row' : 'row-reverse', alignItems: 'flex-start', gap: 12 }}>
-              {/* Avatar */}
-              <div style={{
-                width: 52, height: 52, borderRadius: '50%', flexShrink: 0,
-                background: color, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 26, boxShadow: `0 3px 12px ${color}44`,
-              }}>{icon}</div>
-
-              {/* Bubble */}
-              <div style={{
-                background: bgLight, border: `2px solid ${color}33`, borderRadius: 16,
-                borderTopLeftRadius: isT ? 4 : 16, borderTopRightRadius: isT ? 16 : 4,
-                padding: '14px 18px', maxWidth: '74%',
+            <div key={i} className={`bubble-row ${isT ? 'is-teacher' : 'is-student'}`}>
+              <div className="chat-avatar" style={{ background: color, boxShadow: `0 3px 12px ${color}44` }}>
+                {icon}
+              </div>
+              <div className="chat-bubble" style={{
+                background: bgLight,
+                border: `2px solid ${color}33`,
+                borderTopLeftRadius: isT ? 4 : 16,
+                borderTopRightRadius: isT ? 16 : 4,
               }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color, marginBottom: 6 }}>{name}</div>
-                <div style={{ fontSize: 20, fontWeight: 800, color: '#1e293b', lineHeight: 1.5, marginBottom: 12 }}>
-                  {line.text}
-                </div>
+                <div className="chat-bubble-name" style={{ color }}>{name}</div>
+                <div className="chat-bubble-text">{line.text}</div>
                 <AudioBtn src={line.audio} isTeacher={isT} label={`Hear ${name}`} size="sm" />
               </div>
             </div>
@@ -473,21 +762,12 @@ function Part1() {
         })}
       </div>
 
-      {/* Student responses */}
-      <div style={{ background: '#FFF7ED', borderRadius: 18, padding: 22, border: '2px solid #FED7AA' }}>
-        <div style={{ fontSize: 18, fontWeight: 900, color: S, marginBottom: 4 }}>🧒 Student replies:</div>
-        <div style={{ fontSize: 15, color: '#92400E', fontWeight: 700, marginBottom: 16 }}>
-          Tap any answer to hear it!
-        </div>
-        <div className="option-wrap">
+      <div className="response-section">
+        <div className="response-section-title">🧒 Student replies:</div>
+        <div className="response-section-sub">Tap any answer to hear it!</div>
+        <div className="response-grid">
           {DATA.greeting.responses.map((r, i) => (
-            <AudioBtn
-              key={i}
-              src={r.audio}
-              isTeacher={false}
-              label={`${r.emoji}  ${r.text}`}
-              size="md"
-            />
+            <AudioBtn key={i} src={r.audio} isTeacher={false} label={`${r.emoji}  ${r.text}`} size="md" />
           ))}
         </div>
       </div>
@@ -500,11 +780,10 @@ function Part1() {
 // ══════════════════════════════════════════════════════
 function Part2({ speak }) {
   const [selected, setSelected] = useState({});
-
   return (
     <div>
       <SectionHeader emoji="💬" title="English Conversation" sub="Answer each question! Tap an option to hear the full sentence." />
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+      <div className="q-blocks">
         {DATA.conversation.map((q) => (
           <QuestionBlock
             key={q.id} q={q} speak={speak}
@@ -522,7 +801,6 @@ function QuestionBlock({ q, speak, selected, onSelect }) {
 
   const handleSelect = (opt) => {
     onSelect(opt);
-    // Use static audio file if available, else fall back to TTS
     if (opt.audio) {
       new Audio(opt.audio).play().catch(console.warn);
     } else {
@@ -531,14 +809,14 @@ function QuestionBlock({ q, speak, selected, onSelect }) {
   };
 
   return (
-    <div style={{ background: '#fff', borderRadius: 20, padding: 24, boxShadow: '0 2px 20px rgba(0,0,0,.07)' }}>
+    <div className="q-block">
       {/* Teacher question */}
-      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 14 }}>
-        <div style={{ flex: 1, background: '#EFF6FF', borderRadius: 14, padding: '12px 16px', border: '2px solid #BFDBFE' }}>
-          <div style={{ fontSize: 13, fontWeight: 700, color: '#2563EB', marginBottom: 5 }}>
+      <div className="teacher-q-row">
+        <div className="teacher-q-box">
+          <div className="teacher-q-label">
             👩‍🏫 Teacher asks &nbsp;<span style={{ opacity: .6 }}>{q.ref}</span>
           </div>
-          <div style={{ fontSize: 20, fontWeight: 800, color: '#1e293b', lineHeight: 1.45 }}>{q.qText}</div>
+          <div className="teacher-q-text">{q.qText}</div>
         </div>
         {q.qAudio
           ? <AudioBtn src={q.qAudio} isTeacher={true} label="Hear" size="sm" />
@@ -546,13 +824,10 @@ function QuestionBlock({ q, speak, selected, onSelect }) {
         }
       </div>
 
-      {/* Hint */}
-      <div style={{ fontSize: 15, color: '#94a3b8', fontWeight: 700, fontStyle: 'italic', marginBottom: 16 }}>
-        💡 {q.hint}
-      </div>
+      <div className="q-hint">💡 {q.hint}</div>
 
       {/* Options */}
-      <div className="option-wrap" style={{ marginBottom: 16 }}>
+      <div className="opt-wrap">
         {q.options.map((opt, i) => {
           const label = opt.role ?? opt.story ?? opt.job;
           const isSel = selected === opt;
@@ -560,32 +835,25 @@ function QuestionBlock({ q, speak, selected, onSelect }) {
             <button
               key={i}
               onClick={() => handleSelect(opt)}
+              className="opt-btn"
               style={{
                 background: isSel ? '#EA580C' : '#FFF7ED',
-                border: `2.5px solid ${isSel ? '#EA580C' : '#FDBA74'}`,
-                borderRadius: 14, padding: '11px 20px',
-                fontSize: 19, fontWeight: 800,
+                borderColor: isSel ? '#EA580C' : '#FDBA74',
                 color: isSel ? '#fff' : '#EA580C',
-                display: 'flex', alignItems: 'center', gap: 8,
-                transition: 'all .15s',
-                transform: isSel ? 'scale(1.05)' : 'scale(1)',
+                transform: isSel ? 'scale(1.04)' : 'scale(1)',
               }}
             >
-              <span style={{ fontSize: 24 }}>{opt.emoji}</span>
+              <span className="opt-btn-emoji">{opt.emoji}</span>
               {label}
             </button>
           );
         })}
       </div>
 
-      {/* Result sentence + replay button */}
+      {/* Result */}
       {sentence && (
-        <div
-          key={sentence}
-          className="anim-slideUp"
-          style={{ background: '#F0FDF4', border: '2px solid #86EFAC', borderRadius: 14, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'space-between' }}
-        >
-          <div style={{ fontSize: 21, fontWeight: 900, color: '#15803D', flex: 1 }}>🧒 "{sentence}"</div>
+        <div key={sentence} className="result-row anim-slideUp">
+          <div className="result-text">🧒 "{sentence}"</div>
           {selected.audio
             ? <AudioBtn src={selected.audio} isTeacher={false} label="Again" size="sm" />
             : <SpeakBtn text={sentence} isTeacher={false} speak={speak} id={`ans-${q.id}`} label="Again" size="sm" />
@@ -602,14 +870,14 @@ function QuestionBlock({ q, speak, selected, onSelect }) {
 function Part3({ speak }) {
   const [mode, setMode] = useState('practice');
 
-  const tabBtn = (label, val, color, lightColor) => (
+  const modeBtn = (label, val, color, lightColor) => (
     <button
       onClick={() => setMode(val)}
+      className="phonics-mode-btn"
       style={{
-        padding: '11px 24px', borderRadius: 12, fontSize: 17, fontWeight: 800,
         background: mode === val ? color : lightColor,
         color: mode === val ? '#fff' : color,
-        border: `2.5px solid ${color}`, transition: 'all .15s',
+        borderColor: color,
       }}
     >{label}</button>
   );
@@ -617,42 +885,32 @@ function Part3({ speak }) {
   return (
     <div>
       <SectionHeader emoji="🔤" title="Phonics Practice" sub="Long vowel sounds — Textbook p. 75–76" />
-
-      <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
-        {tabBtn('📚 Practice', 'practice', '#7C3AED', '#EDE9FE')}
-        {tabBtn('🎮 Quiz',     'quiz',     '#059669', '#D1FAE5')}
+      <div className="phonics-mode-btns">
+        {modeBtn('📚 Practice', 'practice', '#7C3AED', '#EDE9FE')}
+        {modeBtn('🎮 Quiz',     'quiz',     '#059669', '#D1FAE5')}
       </div>
-
-      {mode === 'practice'
-        ? <PhonicsPractice />
-        : <PhonicsQuiz speak={speak} />
-      }
+      {mode === 'practice' ? <PhonicsPractice /> : <PhonicsQuiz speak={speak} />}
     </div>
   );
 }
 
-// ── Practice Mode ──────────────────────────────────────
 function PhonicsPractice() {
   const GroupHeader = ({ label, color, bg, border }) => (
-    <div style={{ background: bg, border: `2px solid ${border}`, borderRadius: 12, padding: '10px 16px', fontSize: 20, fontWeight: 900, color, textAlign: 'center', marginBottom: 16 }}>
+    <div className="phonics-group-hdr" style={{ background: bg, borderColor: border, color }}>
       {label}
     </div>
   );
-
   return (
     <div className="phonics-cols">
-      {/* Long A */}
       <div>
         <GroupHeader label='🌊 Long "A" — says its name!' color='#6D28D9' bg='#EDE9FE' border='#C4B5FD' />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {DATA.phonics.longA.map(w => <PhonicsCard key={w.word} item={w} type="A" />)}
         </div>
       </div>
-
-      {/* Long E */}
       <div>
         <GroupHeader label='🌿 Long "E" — says its name!' color='#047857' bg='#D1FAE5' border='#6EE7B7' />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {DATA.phonics.longE.map(w => <PhonicsCard key={w.word} item={w} type="E" />)}
         </div>
       </div>
@@ -663,33 +921,27 @@ function PhonicsPractice() {
 function PhonicsCard({ item, type }) {
   const typeColor = type === 'A' ? '#7C3AED' : '#059669';
   const typeBg    = type === 'A' ? '#EDE9FE' : '#D1FAE5';
-
   return (
-    <div style={{ background: '#fff', borderRadius: 16, padding: '14px 16px', border: `2px solid ${typeColor}22`, boxShadow: '0 2px 12px rgba(0,0,0,.06)' }}>
-      {/* Word + static audio button */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 32 }}>{item.emoji}</span>
-          <span style={{ fontSize: 38, fontWeight: 900, color: '#1e293b', fontFamily: 'Nunito, sans-serif' }}>{item.word}</span>
+    <div className="phonics-card" style={{ borderColor: `${typeColor}30` }}>
+      <div className="phonics-card-top">
+        <div className="phonics-card-word-row">
+          <span className="phonics-emoji">{item.emoji}</span>
+          <span className="phonics-word">{item.word}</span>
         </div>
         <AudioBtn src={item.audio} isTeacher={false} label="Hear" size="sm" />
       </div>
-
-      {/* Chunk breakdown — visual display only, no audio per chunk */}
       <div className="chunk-row">
         {item.chunks.map((chunk, idx) => (
           <React.Fragment key={idx}>
-            {idx > 0 && <span style={{ color: '#cbd5e1', fontSize: 20, fontWeight: 700, userSelect: 'none' }}>·</span>}
-            <span style={{
-              padding: '5px 13px', borderRadius: 9, fontSize: 24, fontWeight: 900,
-              border: `2.5px solid ${chunk.v ? typeColor : '#CBD5E1'}`,
-              background: chunk.v ? typeBg : '#F8FAFC',
-              color: chunk.v ? typeColor : '#475569',
-              fontFamily: 'Nunito, sans-serif',
-              display: 'inline-block',
-            }}>
-              {chunk.t}
-            </span>
+            {idx > 0 && <span style={{ color: '#cbd5e1', fontSize: 18, fontWeight: 700, userSelect: 'none' }}>·</span>}
+            <span
+              className="chunk-pill"
+              style={{
+                borderColor: chunk.v ? typeColor : '#CBD5E1',
+                background:  chunk.v ? typeBg    : '#F8FAFC',
+                color:       chunk.v ? typeColor  : '#475569',
+              }}
+            >{chunk.t}</span>
           </React.Fragment>
         ))}
       </div>
@@ -697,21 +949,18 @@ function PhonicsCard({ item, type }) {
   );
 }
 
-// ── Quiz Mode ──────────────────────────────────────────
 function PhonicsQuiz({ speak }) {
   const allWords = [
     ...DATA.phonics.longA.map(w => ({ ...w, type: 'A' })),
     ...DATA.phonics.longE.map(w => ({ ...w, type: 'E' })),
   ];
-
   const shuffle = arr => [...arr].sort(() => Math.random() - .5);
-  const [words]    = useState(() => shuffle(allWords));
+  const [words]               = useState(() => shuffle(allWords));
   const [idx, setIdx]         = useState(0);
   const [score, setScore]     = useState(0);
-  const [feedback, setFeedback] = useState(null); // null | 'correct' | 'wrong'
+  const [feedback, setFeedback] = useState(null);
   const [done, setDone]       = useState(false);
   const [animKey, setAnimKey] = useState(0);
-
   const current = words[idx];
 
   useEffect(() => {
@@ -730,88 +979,64 @@ function PhonicsQuiz({ speak }) {
     }, 1300);
   };
 
-  const restart = () => {
-    setIdx(0); setScore(0); setFeedback(null); setDone(false); setAnimKey(0);
-  };
+  const restart = () => { setIdx(0); setScore(0); setFeedback(null); setDone(false); setAnimKey(0); };
 
   if (done) {
     const pct = score / words.length;
     return (
-      <div className="anim-pop" style={{ textAlign: 'center', padding: '32px 16px' }}>
-        <div style={{ fontSize: 72 }}>{pct >= .8 ? '🏆' : pct >= .5 ? '⭐' : '💪'}</div>
-        <div style={{ fontSize: 38, fontWeight: 900, margin: '16px 0 8px' }}>{score} / {words.length}</div>
-        <div style={{ fontSize: 20, color: '#64748b', fontWeight: 700, marginBottom: 32 }}>
+      <div className="quiz-result anim-pop">
+        <div className="quiz-result-trophy">{pct >= .8 ? '🏆' : pct >= .5 ? '⭐' : '💪'}</div>
+        <div className="quiz-result-score">{score} / {words.length}</div>
+        <div className="quiz-result-msg">
           {pct >= .8 ? "Amazing! You're a phonics star! 🌟" : pct >= .5 ? "Good job! Keep practicing! 👍" : "Keep trying! You can do it! 💪"}
         </div>
-        <button onClick={restart} style={{ background: '#7C3AED', color: '#fff', border: 'none', borderRadius: 16, padding: '16px 40px', fontSize: 22, fontWeight: 900, fontFamily: 'Nunito, sans-serif' }}>
-          🔄 Play Again
-        </button>
+        <button onClick={restart} className="quiz-restart-btn">🔄 Play Again</button>
       </div>
     );
   }
 
-  const A_COLOR = '#7C3AED';
-  const E_COLOR = '#059669';
+  const A_COLOR   = '#7C3AED';
+  const E_COLOR   = '#059669';
   const feedColor = feedback === 'correct' ? '#16A34A' : '#DC2626';
 
   return (
     <div>
-      {/* Progress bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16, fontWeight: 700, color: '#64748b', marginBottom: 20 }}>
+      <div className="progress-row">
         <span>Question {idx + 1} / {words.length}</span>
         <span>⭐ {score} correct</span>
       </div>
-      <div style={{ height: 8, background: '#e2e8f0', borderRadius: 99, marginBottom: 28, overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${((idx + 1) / words.length) * 100}%`, background: '#7C3AED', borderRadius: 99, transition: 'width .4s ease' }} />
+      <div className="progress-bar">
+        <div className="progress-fill" style={{ width: `${((idx + 1) / words.length) * 100}%`, background: '#7C3AED' }} />
       </div>
 
-      {/* Word card */}
-      <div
-        key={animKey}
-        className="anim-pop"
-        style={{
-          background: '#fff', borderRadius: 24, padding: '36px 28px', textAlign: 'center',
-          boxShadow: '0 4px 28px rgba(0,0,0,.10)',
-          border: feedback ? `3px solid ${feedColor}` : '3px solid transparent',
-          marginBottom: 28, transition: 'border-color .2s',
-        }}
-      >
-        <div style={{ fontSize: 64, marginBottom: 10 }}>{current.emoji}</div>
-        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 14 }}>
-          <span style={{ fontSize: 56, fontWeight: 900, color: '#1e293b', fontFamily: 'Nunito, sans-serif' }}>{current.word}</span>
+      <div key={animKey} className="quiz-card anim-pop" style={{ borderColor: feedback ? feedColor : 'transparent' }}>
+        <span className="quiz-emoji">{current.emoji}</span>
+        <div className="quiz-word-row">
+          <span className="quiz-word">{current.word}</span>
           <AudioBtn src={current.audio} isTeacher={false} label="Hear" size="md" />
         </div>
-
         {feedback && (
-          <div className="anim-slideUp" style={{ fontSize: 22, fontWeight: 900, marginTop: 16, color: feedColor }}>
-            {feedback === 'correct'
-              ? `✅ Yes! Long ${current.type}!`
-              : `❌ It's Long ${current.type}! Try again next time.`}
+          <div className="anim-slideUp" style={{ fontSize: 'clamp(16px,4vw,22px)', fontWeight: 900, marginTop: 14, color: feedColor }}>
+            {feedback === 'correct' ? `✅ Yes! Long ${current.type}!` : `❌ It's Long ${current.type}! Try again next time.`}
           </div>
         )}
       </div>
 
-      {/* A / E buttons */}
-      <div style={{ fontSize: 19, fontWeight: 700, color: '#64748b', textAlign: 'center', marginBottom: 18 }}>
-        Is this Long A or Long E?
-      </div>
-      <div style={{ display: 'flex', gap: 20, justifyContent: 'center' }}>
+      <div className="quiz-label">Is this Long A or Long E?</div>
+      <div className="quiz-ae-row">
         {[{ label: 'A', val: 'A', color: A_COLOR }, { label: 'E', val: 'E', color: E_COLOR }].map(({ label, val, color }) => (
           <button
             key={val}
             onClick={() => answer(val)}
             disabled={!!feedback}
+            className="quiz-ae-btn"
             style={{
-              background: feedback ? '#94a3b8' : color, color: '#fff', border: 'none',
-              borderRadius: 20, padding: '20px 56px', fontSize: 40, fontWeight: 900,
-              fontFamily: 'Nunito, sans-serif', opacity: feedback ? .55 : 1,
+              background: feedback ? '#94a3b8' : color,
+              opacity: feedback ? .55 : 1,
               cursor: feedback ? 'not-allowed' : 'pointer',
-              transition: 'all .15s',
-              boxShadow: feedback ? 'none' : `0 6px 20px ${color}55`,
+              boxShadow: feedback ? 'none' : `0 6px 18px ${color}55`,
             }}
-          >
-            {label}
-          </button>
+          >{label}</button>
         ))}
       </div>
     </div>
@@ -821,10 +1046,8 @@ function PhonicsQuiz({ speak }) {
 // ══════════════════════════════════════════════════════
 //  PART 4 – RHYMES & SONGS
 // ══════════════════════════════════════════════════════
-
-// Rhyme card: shows lyrics line by line, each line has a play button + Play All
 function RhymeCard({ rhyme }) {
-  const [active, setActive] = useState(null); // null | 'all' | line index
+  const [active, setActive] = useState(null);
   const audioRef = useRef(null);
 
   const stopCurrent = () => {
@@ -846,34 +1069,27 @@ function RhymeCard({ rhyme }) {
     audio.play().catch(console.warn);
   };
 
-  const isAllPlaying  = active === 'all';
+  const isAllPlaying = active === 'all';
   const PURPLE = '#7C3AED';
   const LIGHT  = '#EDE9FE';
 
   return (
-    <div style={{ background: '#fff', borderRadius: 20, padding: 24, boxShadow: '0 2px 20px rgba(0,0,0,.08)' }}>
-      {/* Header row */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 28 }}>{rhyme.emoji}</span>
+    <div className="rhyme-card">
+      <div className="rhyme-hdr">
+        <div className="rhyme-hdr-info">
+          <span className="rhyme-hdr-emoji">{rhyme.emoji}</span>
           <div>
-            <div style={{ fontSize: 22, fontWeight: 900, color: '#1e293b' }}>{rhyme.title}</div>
-            <div style={{ fontSize: 13, color: '#94a3b8', fontWeight: 700 }}>📖 {rhyme.ref}</div>
+            <div className="rhyme-hdr-title">{rhyme.title}</div>
+            <div className="rhyme-hdr-ref">📖 {rhyme.ref}</div>
           </div>
         </div>
-
-        {/* Play All / Stop button */}
         <button
           onClick={() => isAllPlaying ? stopCurrent() : playAudio(rhyme.fullAudio, 'all')}
-          className={isAllPlaying ? 'anim-pulse' : ''}
+          className={`play-all-btn${isAllPlaying ? ' anim-pulse' : ''}`}
           style={{
             background: isAllPlaying ? PURPLE : LIGHT,
-            border: `2.5px solid ${PURPLE}`,
-            borderRadius: 12, padding: '10px 18px',
-            fontSize: 16, fontWeight: 800,
+            borderColor: PURPLE,
             color: isAllPlaying ? '#fff' : PURPLE,
-            display: 'flex', alignItems: 'center', gap: 8,
-            transition: 'all .15s', whiteSpace: 'nowrap',
           }}
         >
           <span>{isAllPlaying ? '⏹' : '▶'}</span>
@@ -881,43 +1097,28 @@ function RhymeCard({ rhyme }) {
         </button>
       </div>
 
-      {/* Lyrics lines */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div className="lyric-lines">
         {rhyme.lines.map((line, idx) => {
           const isLinePlaying = active === idx;
           return (
             <div
               key={idx}
+              className="lyric-line"
               style={{
-                display: 'flex', alignItems: 'center', gap: 12,
-                background: isLinePlaying ? LIGHT : '#F8FAFC',
-                borderRadius: 14, padding: '12px 16px',
-                border: `2px solid ${isLinePlaying ? PURPLE : 'transparent'}`,
-                transition: 'all .2s',
+                background:   isLinePlaying ? LIGHT : '#F8FAFC',
+                borderColor:  isLinePlaying ? PURPLE : 'transparent',
               }}
             >
-              {/* Line play/stop button */}
               <button
                 onClick={() => isLinePlaying ? stopCurrent() : playAudio(line.audio, idx)}
+                className="lyric-play-btn"
                 style={{
-                  width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
-                  background: isLinePlaying ? PURPLE : '#fff',
-                  border: `2.5px solid ${PURPLE}`,
-                  color: isLinePlaying ? '#fff' : PURPLE,
-                  fontSize: 16, cursor: 'pointer',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  transition: 'all .15s',
+                  background:  isLinePlaying ? PURPLE : '#fff',
+                  borderColor: PURPLE,
+                  color:       isLinePlaying ? '#fff' : PURPLE,
                 }}
-              >
-                {isLinePlaying ? '⏹' : '▶'}
-              </button>
-
-              {/* Lyric text */}
-              <div style={{
-                fontSize: 19, fontWeight: 700, lineHeight: 1.65,
-                color: isLinePlaying ? PURPLE : '#1e293b',
-                whiteSpace: 'pre-line',
-              }}>
+              >{isLinePlaying ? '⏹' : '▶'}</button>
+              <div className="lyric-text" style={{ color: isLinePlaying ? PURPLE : '#1e293b' }}>
                 {line.text}
               </div>
             </div>
@@ -928,7 +1129,6 @@ function RhymeCard({ rhyme }) {
   );
 }
 
-// Song card: just title + play/stop button
 function SongCard({ song }) {
   const [playing, setPlaying] = useState(false);
   const audioRef = useRef(null);
@@ -951,29 +1151,22 @@ function SongCard({ song }) {
   const BLUE = '#2563EB';
 
   return (
-    <div style={{
-      background: '#fff', borderRadius: 16, padding: '16px 20px',
-      display: 'flex', alignItems: 'center', gap: 16,
-      boxShadow: playing ? `0 4px 20px ${BLUE}33` : '0 2px 10px rgba(0,0,0,.06)',
-      border: `2.5px solid ${playing ? BLUE : '#e2e8f0'}`,
-      transition: 'all .2s',
+    <div className="song-card" style={{
+      borderColor:  playing ? BLUE : '#e2e8f0',
+      boxShadow: playing ? `0 4px 18px ${BLUE}33` : '0 2px 8px rgba(0,0,0,.05)',
     }}>
-      <span style={{ fontSize: 32 }}>{song.emoji}</span>
-      <div style={{ flex: 1 }}>
-        <div style={{ fontSize: 20, fontWeight: 900, color: '#1e293b' }}>{song.title}</div>
-        <div style={{ fontSize: 13, color: '#94a3b8', fontWeight: 700, marginTop: 2 }}>{song.ref}</div>
+      <span className="song-emoji">{song.emoji}</span>
+      <div className="song-info">
+        <div className="song-title" style={{ color: playing ? BLUE : '#1e293b' }}>{song.title}</div>
+        <div className="song-ref">{song.ref}</div>
       </div>
       <button
         onClick={toggle}
-        className={playing ? 'anim-pulse' : ''}
+        className={`song-play-btn${playing ? ' anim-pulse' : ''}`}
         style={{
-          background: playing ? BLUE : '#EFF6FF',
-          border: `2.5px solid ${BLUE}`,
-          borderRadius: 12, padding: '10px 20px',
-          fontSize: 16, fontWeight: 800,
-          color: playing ? '#fff' : BLUE,
-          display: 'flex', alignItems: 'center', gap: 8,
-          transition: 'all .15s', whiteSpace: 'nowrap',
+          background:  playing ? BLUE : '#EFF6FF',
+          borderColor: BLUE,
+          color:       playing ? '#fff' : BLUE,
         }}
       >
         <span>{playing ? '⏹' : '▶'}</span>
@@ -985,27 +1178,20 @@ function SongCard({ song }) {
 
 function Part4() {
   const { rhymes, songs } = DATA.rhymesAndSongs;
-
   return (
     <div>
       <SectionHeader emoji="🎵" title="Rhyme & Song Time!" sub="Tap a line to practise, or play the whole piece!" />
 
-      {/* Rhymes */}
-      <div style={{ marginBottom: 32 }}>
-        <div style={{ fontSize: 17, fontWeight: 900, color: '#7C3AED', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-          📜 Nursery Rhymes
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ marginBottom: 24 }}>
+        <div className="section-label" style={{ color: '#7C3AED' }}>📜 Nursery Rhymes</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           {rhymes.map(r => <RhymeCard key={r.title} rhyme={r} />)}
         </div>
       </div>
 
-      {/* Songs */}
       <div>
-        <div style={{ fontSize: 17, fontWeight: 900, color: '#2563EB', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-          🎵 Songs — tap to play!
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div className="section-label" style={{ color: '#2563EB' }}>🎵 Songs — tap to play!</div>
+        <div className="song-cards">
           {songs.map(s => <SongCard key={s.title} song={s} />)}
         </div>
       </div>
@@ -1014,77 +1200,47 @@ function Part4() {
 }
 
 // ══════════════════════════════════════════════════════
-//  SHARED UI HELPERS
-// ══════════════════════════════════════════════════════
-function SectionHeader({ emoji, title, sub }) {
-  return (
-    <div style={{ marginBottom: 28 }}>
-      <h2 style={{ fontSize: 28, fontWeight: 900, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 10 }}>
-        {emoji} {title}
-      </h2>
-      <p style={{ fontSize: 16, color: '#64748b', fontWeight: 700, marginTop: 4 }}>{sub}</p>
-    </div>
-  );
-}
-
-// ══════════════════════════════════════════════════════
 //  APP ROOT
 // ══════════════════════════════════════════════════════
 const TABS = [
-  { label: '📞 Greeting', short: 'Greeting' },
-  { label: '💬 Conversation', short: 'Talk' },
-  { label: '🔤 Phonics', short: 'Phonics' },
-  { label: '🎵 Songs', short: 'Songs' },
+  { label: '📞 Greeting' },
+  { label: '💬 Conversation' },
+  { label: '🔤 Phonics' },
+  { label: '🎵 Songs' },
 ];
 
 function App() {
   const { speak, stop, speakingId, supported } = useTTS();
   const [tab, setTab] = useState(0);
-
   const handleTab = (i) => { stop(); setTab(i); };
-
   const ctxValue = { speakingId };
 
   return (
     <SpeakingCtx.Provider value={ctxValue}>
-      <div style={{ maxWidth: 820, margin: '0 auto', padding: '0 16px 72px' }}>
+      <div className="app-wrap">
 
-        {/* ── Header ── */}
-        <header style={{ textAlign: 'center', padding: '32px 16px 24px' }}>
-          <div style={{ fontSize: 52, lineHeight: 1 }}>👑</div>
-          <h1 style={{ fontSize: 32, fontWeight: 900, color: '#1e293b', margin: '10px 0 4px' }}>
-            K3 English Phone Practice
-          </h1>
-          <p style={{ fontSize: 16, color: '#64748b', fontWeight: 700 }}>
-            Interactive Telephone Teaching · Fairy Tale World ✨
-          </p>
+        <header className="app-header">
+          <span className="app-header-crown">👑</span>
+          <h1 className="app-header-h1">K3 English Phone Practice</h1>
+          <p className="app-header-sub">Interactive Telephone Teaching · Fairy Tale World ✨</p>
         </header>
 
-        {/* ── TTS not supported warning ── */}
         {!supported && (
-          <div style={{ background: '#FEF2F2', border: '2px solid #FECACA', borderRadius: 14, padding: '14px 18px', marginBottom: 20, fontSize: 17, fontWeight: 700, color: '#DC2626' }}>
-            ⚠️ Your browser doesn't support Text-to-Speech. Please use <strong>Chrome</strong> or <strong>Safari</strong> for the best experience.
+          <div style={{ background: '#FEF2F2', border: '2px solid #FECACA', borderRadius: 12, padding: '12px 16px', marginBottom: 12, fontSize: 15, fontWeight: 700, color: '#DC2626' }}>
+            ⚠️ Your browser doesn't support Text-to-Speech. Please use <strong>Chrome</strong> or <strong>Safari</strong>.
           </div>
         )}
 
-        {/* ── Tab Navigation ── */}
-        <nav style={{ background: '#fff', borderRadius: 18, padding: 10, boxShadow: '0 2px 16px rgba(0,0,0,.08)', marginBottom: 20 }}>
+        <nav className="tab-nav">
           <div className="tab-bar">
             {TABS.map((t, i) => (
               <button
                 key={i}
                 onClick={() => handleTab(i)}
+                className="tab-btn"
                 style={{
-                  flex: '1 1 auto',
-                  padding: '12px 10px',
-                  borderRadius: 12,
-                  fontSize: 16,
-                  fontWeight: 800,
-                  border: 'none',
                   background: tab === i ? '#1e293b' : 'transparent',
-                  color: tab === i ? '#fff' : '#64748b',
-                  transition: 'all .2s',
-                  whiteSpace: 'nowrap',
+                  color:      tab === i ? '#fff'    : '#64748b',
                 }}
               >
                 {t.label}
@@ -1093,8 +1249,7 @@ function App() {
           </div>
         </nav>
 
-        {/* ── Content Card ── */}
-        <main style={{ background: '#fff', borderRadius: 24, padding: '32px 28px', boxShadow: '0 4px 28px rgba(0,0,0,.09)' }}>
+        <main className="content-card">
           {tab === 0 && <Part1 />}
           {tab === 1 && <Part2 speak={speak} />}
           {tab === 2 && <Part3 speak={speak} />}
