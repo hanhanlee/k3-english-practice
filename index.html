@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>K3 English Phone Practice</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Nunito', sans-serif;
+      background: #f0f4ff;
+      min-height: 100vh;
+      color: #1e293b;
+    }
+
+    button { font-family: 'Nunito', sans-serif; cursor: pointer; }
+    button:focus-visible { outline: 3px solid #6366f1; outline-offset: 3px; }
+
+    /* Tab bar */
+    .tab-bar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    /* Phonics two-column grid */
+    .phonics-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 580px) {
+      .phonics-cols { grid-template-columns: 1fr; }
+    }
+
+    /* Option buttons wrap */
+    .option-wrap {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    /* Chunk breakdown row */
+    .chunk-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    /* Animations */
+    @keyframes pop {
+      0%   { transform: scale(0.85); opacity: 0; }
+      70%  { transform: scale(1.06); }
+      100% { transform: scale(1);    opacity: 1; }
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: .65; }
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-6px); }
+      40%, 80% { transform: translateX(6px); }
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(14px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .anim-pop    { animation: pop    .3s cubic-bezier(.34,1.56,.64,1) both; }
+    .anim-pulse  { animation: pulse  .8s ease infinite; }
+    .anim-shake  { animation: shake  .4s ease; }
+    .anim-slideUp{ animation: slideUp .3s ease both; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback, useRef } = React;
+
+// ══════════════════════════════════════════════════════
+//  LESSON DATA
+// ══════════════════════════════════════════════════════
+const DATA = {
+  greeting: {
+    lines: [
+      {
+        role: 'S',
+        text: "Hello! This is [Student's Name]. Who is this?",
+        audio: "ref/greeting/greeting_s_hello.mp3",
+      },
+      {
+        role: 'T',
+        text: "This is Teacher Nick. How are you?",
+        audio: "ref/greeting/greeting_t_how.mp3",
+      },
+    ],
+    responses: [
+      { text: "I'm okay.",  emoji: "😊", audio: "ref/greeting/greeting_s_okay.mp3"  },
+      { text: "I'm happy.", emoji: "😄", audio: "ref/greeting/greeting_s_happy.mp3" },
+      { text: "I'm good.",  emoji: "👍", audio: "ref/greeting/greeting_s_good.mp3"  },
+      { text: "I'm tired.", emoji: "😴", audio: "ref/greeting/greeting_s_tired.mp3" },
+      { text: "I'm great!", emoji: "🌟", audio: "ref/greeting/greeting_s_great.mp3" },
+    ],
+  },
+
+  conversation: [
+    {
+      id: 'q1',
+      ref: 'TB p. 24–25',
+      qText: "In the fairy tale world, who do you want to be? Why?",
+      qAudio: "ref/conversation/conv_t_q1.mp3",
+      hint: "I want to be a _____ because _____.",
+      buildSentence: (o) => `I want to be a ${o.role} because ${o.reason}.`,
+      options: [
+        { role: 'queen',    reason: 'they are kind',   emoji: '👸', audio: 'ref/conversation/conv_q1_queen.mp3'    },
+        { role: 'king',     reason: 'they are smart',  emoji: '🤴', audio: 'ref/conversation/conv_q1_king.mp3'     },
+        { role: 'princess', reason: 'they are pretty', emoji: '👑', audio: 'ref/conversation/conv_q1_princess.mp3' },
+        { role: 'prince',   reason: 'they are strong', emoji: '🫅', audio: 'ref/conversation/conv_q1_prince.mp3'   },
+        { role: 'knight',   reason: 'they are brave',  emoji: '⚔️', audio: 'ref/conversation/conv_q1_knight.mp3'  },
+      ],
+    },
+    {
+      id: 'q2',
+      ref: 'TB p. 26',
+      qText: "Which fairy tale story do you like?",
+      qAudio: "ref/conversation/conv_t_q2.mp3",
+      hint: "I like _____.",
+      buildSentence: (o) => `I like ${o.story}.`,
+      options: [
+        { story: 'Snow White',           emoji: '🍎', audio: 'ref/conversation/conv_q2_snowwhite.mp3'     },
+        { story: 'Peter Pan',            emoji: '🧚', audio: 'ref/conversation/conv_q2_peterpan.mp3'      },
+        { story: 'Cinderella',           emoji: '👠', audio: 'ref/conversation/conv_q2_cinderella.mp3'    },
+        { story: 'Sleeping Beauty',      emoji: '😴', audio: 'ref/conversation/conv_q2_sleepingbeauty.mp3'},
+        { story: 'Beauty and the Beast', emoji: '🌹', audio: 'ref/conversation/conv_q2_beautyandbeast.mp3'},
+        { story: 'The Three Little Pigs',emoji: '🐷', audio: 'ref/conversation/conv_q2_threelittlepigs.mp3'},
+      ],
+    },
+    {
+      id: 'q3',
+      ref: 'TB p. 28–29',
+      qText: "What do you want to be when you grow up?",
+      qAudio: "ref/conversation/conv_t_q3.mp3",
+      hint: "I want to be a/an _____.",
+      buildSentence: (o) => `I want to be ${o.article} ${o.job}.`,
+      options: [
+        { job: 'chef',           article: 'a',  emoji: '👨‍🍳', audio: 'ref/conversation/conv_q3_chef.mp3'         },
+        { job: 'doctor',         article: 'a',  emoji: '👨‍⚕️', audio: 'ref/conversation/conv_q3_doctor.mp3'       },
+        { job: 'astronaut',      article: 'an', emoji: '🚀',  audio: 'ref/conversation/conv_q3_astronaut.mp3'    },
+        { job: 'teacher',        article: 'a',  emoji: '👩‍🏫', audio: 'ref/conversation/conv_q3_teacher.mp3'      },
+        { job: 'firefighter',    article: 'a',  emoji: '🧑‍🚒', audio: 'ref/conversation/conv_q3_firefighter.mp3'  },
+        { job: 'baseball player',article: 'a',  emoji: '⚾',  audio: 'ref/conversation/conv_q3_baseballplayer.mp3'},
+        { job: 'mail carrier',   article: 'a',  emoji: '📬', audio: 'ref/conversation/conv_q3_mailcarrier.mp3'  },
+        { job: 'dentist',        article: 'a',  emoji: '🦷', audio: 'ref/conversation/conv_q3_dentist.mp3'      },
+        { job: 'nurse',          article: 'a',  emoji: '👩‍⚕️', audio: 'ref/conversation/conv_q3_nurse.mp3'       },
+        { job: 'businessman',    article: 'a',  emoji: '💼', audio: 'ref/conversation/conv_q3_businessman.mp3'  },
+        { job: 'waitress',       article: 'a',  emoji: '🍽️', audio: 'ref/conversation/conv_q3_waitress.mp3'     },
+        { job: 'police officer', article: 'a',  emoji: '👮', audio: 'ref/conversation/conv_q3_policeofficer.mp3'},
+      ],
+    },
+  ],
+
+  phonics: {
+    // chunks: array of { t: text, v: isVowel } — visual only, no per-chunk audio
+    longA: [
+      { word: 'tail',  emoji: '🐱', audio: 'ref/phonics/phonics_tail.mp3',  chunks: [{ t:'t',  v:false },{ t:'ai', v:true  },{ t:'l',  v:false }] },
+      { word: 'snake', emoji: '🐍', audio: 'ref/phonics/phonics_snake.mp3', chunks: [{ t:'sn', v:false },{ t:'a',  v:true  },{ t:'ke', v:false }] },
+      { word: 'play',  emoji: '🎮', audio: 'ref/phonics/phonics_play.mp3',  chunks: [{ t:'pl', v:false },{ t:'ay', v:true  }] },
+      { word: 'wait',  emoji: '⏳', audio: 'ref/phonics/phonics_wait.mp3',  chunks: [{ t:'w',  v:false },{ t:'ai', v:true  },{ t:'t',  v:false }] },
+      { word: 'game',  emoji: '🎲', audio: 'ref/phonics/phonics_game.mp3',  chunks: [{ t:'g',  v:false },{ t:'a',  v:true  },{ t:'me', v:false }] },
+      { word: 'cake',  emoji: '🎂', audio: 'ref/phonics/phonics_cake.mp3',  chunks: [{ t:'c',  v:false },{ t:'a',  v:true  },{ t:'ke', v:false }] },
+      { word: 'name',  emoji: '📛', audio: 'ref/phonics/phonics_name.mp3',  chunks: [{ t:'n',  v:false },{ t:'a',  v:true  },{ t:'me', v:false }] },
+      { word: 'rain',  emoji: '🌧️', audio: 'ref/phonics/phonics_rain.mp3',  chunks: [{ t:'r',  v:false },{ t:'ai', v:true  },{ t:'n',  v:false }] },
+    ],
+    longE: [
+      { word: 'tree',   emoji: '🌳', audio: 'ref/phonics/phonics_tree.mp3',   chunks: [{ t:'tr',   v:false },{ t:'ee', v:true }] },
+      { word: 'bee',    emoji: '🐝', audio: 'ref/phonics/phonics_bee.mp3',    chunks: [{ t:'b',    v:false },{ t:'ee', v:true }] },
+      { word: 'key',    emoji: '🔑', audio: 'ref/phonics/phonics_key.mp3',    chunks: [{ t:'k',    v:false },{ t:'ey', v:true }] },
+      { word: 'sea',    emoji: '🌊', audio: 'ref/phonics/phonics_sea.mp3',    chunks: [{ t:'s',    v:false },{ t:'ea', v:true }] },
+      { word: 'tea',    emoji: '🍵', audio: 'ref/phonics/phonics_tea.mp3',    chunks: [{ t:'t',    v:false },{ t:'ea', v:true }] },
+      { word: 'monkey', emoji: '🐒', audio: 'ref/phonics/phonics_monkey.mp3', chunks: [{ t:'monk', v:false },{ t:'ey', v:true }] },
+    ],
+  },
+
+  rhymesAndSongs: {
+    rhymes: [
+      {
+        title: 'Mud Castle',
+        emoji: '🏰',
+        ref: 'TB p. 27',
+        fullAudio: 'ref/songs/rhyme_mudcastle_full.mp3',
+        lines: [
+          {
+            text: "The king's favorite knight\nhas a dragon for a pet.",
+            audio: 'ref/songs/rhyme_mudcastle_01.mp3',
+          },
+          {
+            text: "They like to play in the forest,\nbut not when it is wet.",
+            audio: 'ref/songs/rhyme_mudcastle_02.mp3',
+          },
+          {
+            text: "Together they built a castle,\nwith mud for all to play.",
+            audio: 'ref/songs/rhyme_mudcastle_03.mp3',
+          },
+          {
+            text: "So let's all go to the castle\non a beautiful sunny day.",
+            audio: 'ref/songs/rhyme_mudcastle_04.mp3',
+          },
+        ],
+      },
+      {
+        title: 'Thankful to You',
+        emoji: '🙏',
+        ref: 'TB p. 31',
+        fullAudio: 'ref/songs/rhyme_thankful_full.mp3',
+        lines: [
+          {
+            text: "There are so many people who keep us safe.",
+            audio: 'ref/songs/rhyme_thankful_01.mp3',
+          },
+          {
+            text: "A doctor, a nurse, a dentist, too.",
+            audio: 'ref/songs/rhyme_thankful_02.mp3',
+          },
+          {
+            text: "Each one helps me and you.",
+            audio: 'ref/songs/rhyme_thankful_03.mp3',
+          },
+          {
+            text: "A teacher, a cook, a bus driver, too.",
+            audio: 'ref/songs/rhyme_thankful_04.mp3',
+          },
+          {
+            text: "Help us learn and grow like you.",
+            audio: 'ref/songs/rhyme_thankful_05.mp3',
+          },
+          {
+            text: "People who help us in every way,",
+            audio: 'ref/songs/rhyme_thankful_06.mp3',
+          },
+          {
+            text: "We are very, very thankful everyday!",
+            audio: 'ref/songs/rhyme_thankful_07.mp3',
+          },
+        ],
+      },
+    ],
+    songs: [
+      { title: 'The Poor King',      emoji: '👑', ref: 'Song 1', audio: 'ref/songs/song_01_poorking.mp3'       },
+      { title: 'Dress Up',           emoji: '👗', ref: 'Song 2', audio: 'ref/songs/song_02_dressup.mp3'          },
+      { title: 'What Shall I Be',    emoji: '🌟', ref: 'Song 3', audio: 'ref/songs/song_03_whatshallibe.mp3'     },
+      { title: 'People in My Town',  emoji: '🏘️', ref: 'Song 4', audio: 'ref/songs/song_04_peopleinmytown.mp3'  },
+    ],
+  },
+};
+
+// ══════════════════════════════════════════════════════
+//  TTS HOOK
+// ══════════════════════════════════════════════════════
+function useTTS() {
+  const [voices, setVoices] = useState([]);
+  const [speakingId, setSpeakingId] = useState(null); // tracks which element is speaking
+  const supported = 'speechSynthesis' in window;
+
+  useEffect(() => {
+    if (!supported) return;
+    const load = () => {
+      const v = window.speechSynthesis.getVoices();
+      if (v.length) setVoices(v);
+    };
+    load();
+    window.speechSynthesis.addEventListener('voiceschanged', load);
+    return () => window.speechSynthesis.removeEventListener('voiceschanged', load);
+  }, [supported]);
+
+  // id: any string to track which button is currently speaking
+  const speak = useCallback((text, isTeacher, id = 'default') => {
+    if (!supported) return;
+    window.speechSynthesis.cancel();
+    setSpeakingId(id);
+
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang  = 'en-US';
+    utter.rate  = isTeacher ? 0.9 : 0.85;
+    utter.volume = 1;
+
+    const enUS = voices.filter(v => v.lang === 'en-US' || v.lang === 'en_US');
+    const enAll = voices.filter(v => v.lang.startsWith('en'));
+    const pool  = enUS.length ? enUS : enAll;
+
+    if (isTeacher) {
+      utter.pitch = 1.0;
+      const v = pool.find(v => /samantha|zira|victoria|karen|moira|google us english/i.test(v.name))
+             || pool[0];
+      if (v) utter.voice = v;
+    } else {
+      utter.pitch = 1.2;
+      // try to get a different voice from teacher
+      const v = pool.find(v => /alex|daniel|fred|mark|david|george|tom|junior/i.test(v.name))
+             || (pool.length > 1 ? pool[pool.length - 1] : pool[0]);
+      if (v) utter.voice = v;
+    }
+
+    utter.onend   = () => setSpeakingId(null);
+    utter.onerror = () => setSpeakingId(null);
+    window.speechSynthesis.speak(utter);
+  }, [voices, supported]);
+
+  const stop = useCallback(() => {
+    if (supported) window.speechSynthesis.cancel();
+    setSpeakingId(null);
+  }, [supported]);
+
+  return { speak, stop, speakingId, supported };
+}
+
+// ══════════════════════════════════════════════════════
+//  SHARED COMPONENTS
+// ══════════════════════════════════════════════════════
+
+// Reusable TTS button
+function SpeakBtn({ text, isTeacher, speak, id, label, size = 'md', fullWidth = false }) {
+  const { speakingId } = useSpeakingId();
+  const active = speakingId === id;
+  const T_COLOR  = '#2563EB';
+  const S_COLOR  = '#EA580C';
+  const color    = isTeacher ? T_COLOR : S_COLOR;
+  const bgIdle   = isTeacher ? '#EFF6FF' : '#FFF7ED';
+
+  const sizes = {
+    sm: { pad: '8px 14px',  fs: 15, icon: 18 },
+    md: { pad: '11px 20px', fs: 18, icon: 22 },
+    lg: { pad: '15px 28px', fs: 21, icon: 26 },
+  };
+  const s = sizes[size];
+
+  return (
+    <button
+      onClick={() => speak(text, isTeacher, id)}
+      className={active ? 'anim-pulse' : ''}
+      style={{
+        background: active ? color : bgIdle,
+        border: `2.5px solid ${color}`,
+        borderRadius: 12,
+        padding: s.pad,
+        fontSize: s.fs,
+        fontWeight: 800,
+        color: active ? '#fff' : color,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        width: fullWidth ? '100%' : 'auto',
+        justifyContent: fullWidth ? 'center' : 'flex-start',
+        transition: 'background .15s, color .15s, transform .1s',
+        transform: active ? 'scale(.97)' : 'scale(1)',
+      }}
+    >
+      <span style={{ fontSize: s.icon }}>{active ? '🔊' : '🔈'}</span>
+      {label}
+    </button>
+  );
+}
+
+// Button that plays a static audio file (MP3)
+function AudioBtn({ src, isTeacher, label, size = 'md' }) {
+  const [playing, setPlaying] = useState(false);
+  const audioRef = useRef(null);
+
+  const T_COLOR = '#2563EB';
+  const S_COLOR = '#EA580C';
+  const color   = isTeacher ? T_COLOR : S_COLOR;
+  const bgIdle  = isTeacher ? '#EFF6FF' : '#FFF7ED';
+
+  const sizes = {
+    sm: { pad: '8px 14px',  fs: 15, icon: 18 },
+    md: { pad: '11px 20px', fs: 18, icon: 22 },
+    lg: { pad: '15px 28px', fs: 21, icon: 26 },
+  };
+  const s = sizes[size];
+
+  const handleClick = () => {
+    // Stop any currently playing audio first
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    const audio = new Audio(src);
+    audioRef.current = audio;
+    audio.onplay  = () => setPlaying(true);
+    audio.onended = () => setPlaying(false);
+    audio.onerror = () => { setPlaying(false); console.warn('Audio failed to load:', src); };
+    audio.play().catch(() => setPlaying(false));
+  };
+
+  return (
+    <button
+      onClick={handleClick}
+      className={playing ? 'anim-pulse' : ''}
+      style={{
+        background: playing ? color : bgIdle,
+        border: `2.5px solid ${color}`,
+        borderRadius: 12,
+        padding: s.pad,
+        fontSize: s.fs,
+        fontWeight: 800,
+        color: playing ? '#fff' : color,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+        transition: 'background .15s, color .15s',
+      }}
+    >
+      <span style={{ fontSize: s.icon }}>{playing ? '🔊' : '🔈'}</span>
+      {label}
+    </button>
+  );
+}
+
+// Context trick to share speakingId without prop-drilling deeply
+const SpeakingCtx = React.createContext(null);
+function useSpeakingId() { return React.useContext(SpeakingCtx); }
+
+// ══════════════════════════════════════════════════════
+//  PART 1 – GREETING
+// ══════════════════════════════════════════════════════
+function Part1() {
+  const T = '#2563EB';
+  const S = '#EA580C';
+
+  return (
+    <div>
+      <SectionHeader emoji="📞" title="Answering the Telephone" sub="Listen and practice the phone greeting!" />
+
+      {/* Dialogue */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 32 }}>
+        {DATA.greeting.lines.map((line, i) => {
+          const isT    = line.role === 'T';
+          const color   = isT ? T : S;
+          const bgLight = isT ? '#EFF6FF' : '#FFF7ED';
+          const icon    = isT ? '👩‍🏫' : '🧒';
+          const name    = isT ? 'Teacher Nick' : 'Student';
+          return (
+            <div key={i} style={{ display: 'flex', flexDirection: isT ? 'row' : 'row-reverse', alignItems: 'flex-start', gap: 12 }}>
+              {/* Avatar */}
+              <div style={{
+                width: 52, height: 52, borderRadius: '50%', flexShrink: 0,
+                background: color, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 26, boxShadow: `0 3px 12px ${color}44`,
+              }}>{icon}</div>
+
+              {/* Bubble */}
+              <div style={{
+                background: bgLight, border: `2px solid ${color}33`, borderRadius: 16,
+                borderTopLeftRadius: isT ? 4 : 16, borderTopRightRadius: isT ? 16 : 4,
+                padding: '14px 18px', maxWidth: '74%',
+              }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color, marginBottom: 6 }}>{name}</div>
+                <div style={{ fontSize: 20, fontWeight: 800, color: '#1e293b', lineHeight: 1.5, marginBottom: 12 }}>
+                  {line.text}
+                </div>
+                <AudioBtn src={line.audio} isTeacher={isT} label={`Hear ${name}`} size="sm" />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Student responses */}
+      <div style={{ background: '#FFF7ED', borderRadius: 18, padding: 22, border: '2px solid #FED7AA' }}>
+        <div style={{ fontSize: 18, fontWeight: 900, color: S, marginBottom: 4 }}>🧒 Student replies:</div>
+        <div style={{ fontSize: 15, color: '#92400E', fontWeight: 700, marginBottom: 16 }}>
+          Tap any answer to hear it!
+        </div>
+        <div className="option-wrap">
+          {DATA.greeting.responses.map((r, i) => (
+            <AudioBtn
+              key={i}
+              src={r.audio}
+              isTeacher={false}
+              label={`${r.emoji}  ${r.text}`}
+              size="md"
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════
+//  PART 2 – CONVERSATION
+// ══════════════════════════════════════════════════════
+function Part2({ speak }) {
+  const [selected, setSelected] = useState({});
+
+  return (
+    <div>
+      <SectionHeader emoji="💬" title="English Conversation" sub="Answer each question! Tap an option to hear the full sentence." />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
+        {DATA.conversation.map((q) => (
+          <QuestionBlock
+            key={q.id} q={q} speak={speak}
+            selected={selected[q.id]}
+            onSelect={(opt) => setSelected(prev => ({ ...prev, [q.id]: opt }))}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function QuestionBlock({ q, speak, selected, onSelect }) {
+  const sentence = selected ? q.buildSentence(selected) : null;
+
+  const handleSelect = (opt) => {
+    onSelect(opt);
+    // Use static audio file if available, else fall back to TTS
+    if (opt.audio) {
+      new Audio(opt.audio).play().catch(console.warn);
+    } else {
+      speak(q.buildSentence(opt), false, `ans-${q.id}`);
+    }
+  };
+
+  return (
+    <div style={{ background: '#fff', borderRadius: 20, padding: 24, boxShadow: '0 2px 20px rgba(0,0,0,.07)' }}>
+      {/* Teacher question */}
+      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', marginBottom: 14 }}>
+        <div style={{ flex: 1, background: '#EFF6FF', borderRadius: 14, padding: '12px 16px', border: '2px solid #BFDBFE' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: '#2563EB', marginBottom: 5 }}>
+            👩‍🏫 Teacher asks &nbsp;<span style={{ opacity: .6 }}>{q.ref}</span>
+          </div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: '#1e293b', lineHeight: 1.45 }}>{q.qText}</div>
+        </div>
+        {q.qAudio
+          ? <AudioBtn src={q.qAudio} isTeacher={true} label="Hear" size="sm" />
+          : <SpeakBtn text={q.qText} isTeacher={true} speak={speak} id={`q-${q.id}`} label="Hear" size="sm" />
+        }
+      </div>
+
+      {/* Hint */}
+      <div style={{ fontSize: 15, color: '#94a3b8', fontWeight: 700, fontStyle: 'italic', marginBottom: 16 }}>
+        💡 {q.hint}
+      </div>
+
+      {/* Options */}
+      <div className="option-wrap" style={{ marginBottom: 16 }}>
+        {q.options.map((opt, i) => {
+          const label = opt.role ?? opt.story ?? opt.job;
+          const isSel = selected === opt;
+          return (
+            <button
+              key={i}
+              onClick={() => handleSelect(opt)}
+              style={{
+                background: isSel ? '#EA580C' : '#FFF7ED',
+                border: `2.5px solid ${isSel ? '#EA580C' : '#FDBA74'}`,
+                borderRadius: 14, padding: '11px 20px',
+                fontSize: 19, fontWeight: 800,
+                color: isSel ? '#fff' : '#EA580C',
+                display: 'flex', alignItems: 'center', gap: 8,
+                transition: 'all .15s',
+                transform: isSel ? 'scale(1.05)' : 'scale(1)',
+              }}
+            >
+              <span style={{ fontSize: 24 }}>{opt.emoji}</span>
+              {label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Result sentence + replay button */}
+      {sentence && (
+        <div
+          key={sentence}
+          className="anim-slideUp"
+          style={{ background: '#F0FDF4', border: '2px solid #86EFAC', borderRadius: 14, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'space-between' }}
+        >
+          <div style={{ fontSize: 21, fontWeight: 900, color: '#15803D', flex: 1 }}>🧒 "{sentence}"</div>
+          {selected.audio
+            ? <AudioBtn src={selected.audio} isTeacher={false} label="Again" size="sm" />
+            : <SpeakBtn text={sentence} isTeacher={false} speak={speak} id={`ans-${q.id}`} label="Again" size="sm" />
+          }
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════
+//  PART 3 – PHONICS
+// ══════════════════════════════════════════════════════
+function Part3({ speak }) {
+  const [mode, setMode] = useState('practice');
+
+  const tabBtn = (label, val, color, lightColor) => (
+    <button
+      onClick={() => setMode(val)}
+      style={{
+        padding: '11px 24px', borderRadius: 12, fontSize: 17, fontWeight: 800,
+        background: mode === val ? color : lightColor,
+        color: mode === val ? '#fff' : color,
+        border: `2.5px solid ${color}`, transition: 'all .15s',
+      }}
+    >{label}</button>
+  );
+
+  return (
+    <div>
+      <SectionHeader emoji="🔤" title="Phonics Practice" sub="Long vowel sounds — Textbook p. 75–76" />
+
+      <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
+        {tabBtn('📚 Practice', 'practice', '#7C3AED', '#EDE9FE')}
+        {tabBtn('🎮 Quiz',     'quiz',     '#059669', '#D1FAE5')}
+      </div>
+
+      {mode === 'practice'
+        ? <PhonicsPractice />
+        : <PhonicsQuiz speak={speak} />
+      }
+    </div>
+  );
+}
+
+// ── Practice Mode ──────────────────────────────────────
+function PhonicsPractice() {
+  const GroupHeader = ({ label, color, bg, border }) => (
+    <div style={{ background: bg, border: `2px solid ${border}`, borderRadius: 12, padding: '10px 16px', fontSize: 20, fontWeight: 900, color, textAlign: 'center', marginBottom: 16 }}>
+      {label}
+    </div>
+  );
+
+  return (
+    <div className="phonics-cols">
+      {/* Long A */}
+      <div>
+        <GroupHeader label='🌊 Long "A" — says its name!' color='#6D28D9' bg='#EDE9FE' border='#C4B5FD' />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {DATA.phonics.longA.map(w => <PhonicsCard key={w.word} item={w} type="A" />)}
+        </div>
+      </div>
+
+      {/* Long E */}
+      <div>
+        <GroupHeader label='🌿 Long "E" — says its name!' color='#047857' bg='#D1FAE5' border='#6EE7B7' />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {DATA.phonics.longE.map(w => <PhonicsCard key={w.word} item={w} type="E" />)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PhonicsCard({ item, type }) {
+  const typeColor = type === 'A' ? '#7C3AED' : '#059669';
+  const typeBg    = type === 'A' ? '#EDE9FE' : '#D1FAE5';
+
+  return (
+    <div style={{ background: '#fff', borderRadius: 16, padding: '14px 16px', border: `2px solid ${typeColor}22`, boxShadow: '0 2px 12px rgba(0,0,0,.06)' }}>
+      {/* Word + static audio button */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 32 }}>{item.emoji}</span>
+          <span style={{ fontSize: 38, fontWeight: 900, color: '#1e293b', fontFamily: 'Nunito, sans-serif' }}>{item.word}</span>
+        </div>
+        <AudioBtn src={item.audio} isTeacher={false} label="Hear" size="sm" />
+      </div>
+
+      {/* Chunk breakdown — visual display only, no audio per chunk */}
+      <div className="chunk-row">
+        {item.chunks.map((chunk, idx) => (
+          <React.Fragment key={idx}>
+            {idx > 0 && <span style={{ color: '#cbd5e1', fontSize: 20, fontWeight: 700, userSelect: 'none' }}>·</span>}
+            <span style={{
+              padding: '5px 13px', borderRadius: 9, fontSize: 24, fontWeight: 900,
+              border: `2.5px solid ${chunk.v ? typeColor : '#CBD5E1'}`,
+              background: chunk.v ? typeBg : '#F8FAFC',
+              color: chunk.v ? typeColor : '#475569',
+              fontFamily: 'Nunito, sans-serif',
+              display: 'inline-block',
+            }}>
+              {chunk.t}
+            </span>
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Quiz Mode ──────────────────────────────────────────
+function PhonicsQuiz({ speak }) {
+  const allWords = [
+    ...DATA.phonics.longA.map(w => ({ ...w, type: 'A' })),
+    ...DATA.phonics.longE.map(w => ({ ...w, type: 'E' })),
+  ];
+
+  const shuffle = arr => [...arr].sort(() => Math.random() - .5);
+  const [words]    = useState(() => shuffle(allWords));
+  const [idx, setIdx]         = useState(0);
+  const [score, setScore]     = useState(0);
+  const [feedback, setFeedback] = useState(null); // null | 'correct' | 'wrong'
+  const [done, setDone]       = useState(false);
+  const [animKey, setAnimKey] = useState(0);
+
+  const current = words[idx];
+
+  useEffect(() => {
+    if (current) setTimeout(() => new Audio(current.audio).play().catch(console.warn), 350);
+  }, [idx]);
+
+  const answer = (guess) => {
+    if (feedback) return;
+    const ok = guess === current.type;
+    if (ok) setScore(s => s + 1);
+    setFeedback(ok ? 'correct' : 'wrong');
+    setAnimKey(k => k + 1);
+    setTimeout(() => {
+      if (idx + 1 >= words.length) { setDone(true); }
+      else { setIdx(i => i + 1); setFeedback(null); }
+    }, 1300);
+  };
+
+  const restart = () => {
+    setIdx(0); setScore(0); setFeedback(null); setDone(false); setAnimKey(0);
+  };
+
+  if (done) {
+    const pct = score / words.length;
+    return (
+      <div className="anim-pop" style={{ textAlign: 'center', padding: '32px 16px' }}>
+        <div style={{ fontSize: 72 }}>{pct >= .8 ? '🏆' : pct >= .5 ? '⭐' : '💪'}</div>
+        <div style={{ fontSize: 38, fontWeight: 900, margin: '16px 0 8px' }}>{score} / {words.length}</div>
+        <div style={{ fontSize: 20, color: '#64748b', fontWeight: 700, marginBottom: 32 }}>
+          {pct >= .8 ? "Amazing! You're a phonics star! 🌟" : pct >= .5 ? "Good job! Keep practicing! 👍" : "Keep trying! You can do it! 💪"}
+        </div>
+        <button onClick={restart} style={{ background: '#7C3AED', color: '#fff', border: 'none', borderRadius: 16, padding: '16px 40px', fontSize: 22, fontWeight: 900, fontFamily: 'Nunito, sans-serif' }}>
+          🔄 Play Again
+        </button>
+      </div>
+    );
+  }
+
+  const A_COLOR = '#7C3AED';
+  const E_COLOR = '#059669';
+  const feedColor = feedback === 'correct' ? '#16A34A' : '#DC2626';
+
+  return (
+    <div>
+      {/* Progress bar */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 16, fontWeight: 700, color: '#64748b', marginBottom: 20 }}>
+        <span>Question {idx + 1} / {words.length}</span>
+        <span>⭐ {score} correct</span>
+      </div>
+      <div style={{ height: 8, background: '#e2e8f0', borderRadius: 99, marginBottom: 28, overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${((idx + 1) / words.length) * 100}%`, background: '#7C3AED', borderRadius: 99, transition: 'width .4s ease' }} />
+      </div>
+
+      {/* Word card */}
+      <div
+        key={animKey}
+        className="anim-pop"
+        style={{
+          background: '#fff', borderRadius: 24, padding: '36px 28px', textAlign: 'center',
+          boxShadow: '0 4px 28px rgba(0,0,0,.10)',
+          border: feedback ? `3px solid ${feedColor}` : '3px solid transparent',
+          marginBottom: 28, transition: 'border-color .2s',
+        }}
+      >
+        <div style={{ fontSize: 64, marginBottom: 10 }}>{current.emoji}</div>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 14 }}>
+          <span style={{ fontSize: 56, fontWeight: 900, color: '#1e293b', fontFamily: 'Nunito, sans-serif' }}>{current.word}</span>
+          <AudioBtn src={current.audio} isTeacher={false} label="Hear" size="md" />
+        </div>
+
+        {feedback && (
+          <div className="anim-slideUp" style={{ fontSize: 22, fontWeight: 900, marginTop: 16, color: feedColor }}>
+            {feedback === 'correct'
+              ? `✅ Yes! Long ${current.type}!`
+              : `❌ It's Long ${current.type}! Try again next time.`}
+          </div>
+        )}
+      </div>
+
+      {/* A / E buttons */}
+      <div style={{ fontSize: 19, fontWeight: 700, color: '#64748b', textAlign: 'center', marginBottom: 18 }}>
+        Is this Long A or Long E?
+      </div>
+      <div style={{ display: 'flex', gap: 20, justifyContent: 'center' }}>
+        {[{ label: 'A', val: 'A', color: A_COLOR }, { label: 'E', val: 'E', color: E_COLOR }].map(({ label, val, color }) => (
+          <button
+            key={val}
+            onClick={() => answer(val)}
+            disabled={!!feedback}
+            style={{
+              background: feedback ? '#94a3b8' : color, color: '#fff', border: 'none',
+              borderRadius: 20, padding: '20px 56px', fontSize: 40, fontWeight: 900,
+              fontFamily: 'Nunito, sans-serif', opacity: feedback ? .55 : 1,
+              cursor: feedback ? 'not-allowed' : 'pointer',
+              transition: 'all .15s',
+              boxShadow: feedback ? 'none' : `0 6px 20px ${color}55`,
+            }}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════
+//  PART 4 – RHYMES & SONGS
+// ══════════════════════════════════════════════════════
+
+// Rhyme card: shows lyrics line by line, each line has a play button + Play All
+function RhymeCard({ rhyme }) {
+  const [active, setActive] = useState(null); // null | 'all' | line index
+  const audioRef = useRef(null);
+
+  const stopCurrent = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current = null;
+    }
+    setActive(null);
+  };
+
+  const playAudio = (src, key) => {
+    stopCurrent();
+    const audio = new Audio(src);
+    audioRef.current = audio;
+    setActive(key);
+    audio.onended = () => setActive(null);
+    audio.onerror = () => setActive(null);
+    audio.play().catch(console.warn);
+  };
+
+  const isAllPlaying  = active === 'all';
+  const PURPLE = '#7C3AED';
+  const LIGHT  = '#EDE9FE';
+
+  return (
+    <div style={{ background: '#fff', borderRadius: 20, padding: 24, boxShadow: '0 2px 20px rgba(0,0,0,.08)' }}>
+      {/* Header row */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 28 }}>{rhyme.emoji}</span>
+          <div>
+            <div style={{ fontSize: 22, fontWeight: 900, color: '#1e293b' }}>{rhyme.title}</div>
+            <div style={{ fontSize: 13, color: '#94a3b8', fontWeight: 700 }}>📖 {rhyme.ref}</div>
+          </div>
+        </div>
+
+        {/* Play All / Stop button */}
+        <button
+          onClick={() => isAllPlaying ? stopCurrent() : playAudio(rhyme.fullAudio, 'all')}
+          className={isAllPlaying ? 'anim-pulse' : ''}
+          style={{
+            background: isAllPlaying ? PURPLE : LIGHT,
+            border: `2.5px solid ${PURPLE}`,
+            borderRadius: 12, padding: '10px 18px',
+            fontSize: 16, fontWeight: 800,
+            color: isAllPlaying ? '#fff' : PURPLE,
+            display: 'flex', alignItems: 'center', gap: 8,
+            transition: 'all .15s', whiteSpace: 'nowrap',
+          }}
+        >
+          <span>{isAllPlaying ? '⏹' : '▶'}</span>
+          {isAllPlaying ? 'Stop' : 'Play All'}
+        </button>
+      </div>
+
+      {/* Lyrics lines */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {rhyme.lines.map((line, idx) => {
+          const isLinePlaying = active === idx;
+          return (
+            <div
+              key={idx}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 12,
+                background: isLinePlaying ? LIGHT : '#F8FAFC',
+                borderRadius: 14, padding: '12px 16px',
+                border: `2px solid ${isLinePlaying ? PURPLE : 'transparent'}`,
+                transition: 'all .2s',
+              }}
+            >
+              {/* Line play/stop button */}
+              <button
+                onClick={() => isLinePlaying ? stopCurrent() : playAudio(line.audio, idx)}
+                style={{
+                  width: 40, height: 40, borderRadius: '50%', flexShrink: 0,
+                  background: isLinePlaying ? PURPLE : '#fff',
+                  border: `2.5px solid ${PURPLE}`,
+                  color: isLinePlaying ? '#fff' : PURPLE,
+                  fontSize: 16, cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'all .15s',
+                }}
+              >
+                {isLinePlaying ? '⏹' : '▶'}
+              </button>
+
+              {/* Lyric text */}
+              <div style={{
+                fontSize: 19, fontWeight: 700, lineHeight: 1.65,
+                color: isLinePlaying ? PURPLE : '#1e293b',
+                whiteSpace: 'pre-line',
+              }}>
+                {line.text}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// Song card: just title + play/stop button
+function SongCard({ song }) {
+  const [playing, setPlaying] = useState(false);
+  const audioRef = useRef(null);
+
+  const toggle = () => {
+    if (playing) {
+      audioRef.current?.pause();
+      if (audioRef.current) audioRef.current.currentTime = 0;
+      setPlaying(false);
+    } else {
+      const audio = new Audio(song.audio);
+      audioRef.current = audio;
+      audio.onended = () => setPlaying(false);
+      audio.onerror = () => setPlaying(false);
+      audio.play().catch(console.warn);
+      setPlaying(true);
+    }
+  };
+
+  const BLUE = '#2563EB';
+
+  return (
+    <div style={{
+      background: '#fff', borderRadius: 16, padding: '16px 20px',
+      display: 'flex', alignItems: 'center', gap: 16,
+      boxShadow: playing ? `0 4px 20px ${BLUE}33` : '0 2px 10px rgba(0,0,0,.06)',
+      border: `2.5px solid ${playing ? BLUE : '#e2e8f0'}`,
+      transition: 'all .2s',
+    }}>
+      <span style={{ fontSize: 32 }}>{song.emoji}</span>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 20, fontWeight: 900, color: '#1e293b' }}>{song.title}</div>
+        <div style={{ fontSize: 13, color: '#94a3b8', fontWeight: 700, marginTop: 2 }}>{song.ref}</div>
+      </div>
+      <button
+        onClick={toggle}
+        className={playing ? 'anim-pulse' : ''}
+        style={{
+          background: playing ? BLUE : '#EFF6FF',
+          border: `2.5px solid ${BLUE}`,
+          borderRadius: 12, padding: '10px 20px',
+          fontSize: 16, fontWeight: 800,
+          color: playing ? '#fff' : BLUE,
+          display: 'flex', alignItems: 'center', gap: 8,
+          transition: 'all .15s', whiteSpace: 'nowrap',
+        }}
+      >
+        <span>{playing ? '⏹' : '▶'}</span>
+        {playing ? 'Stop' : 'Play'}
+      </button>
+    </div>
+  );
+}
+
+function Part4() {
+  const { rhymes, songs } = DATA.rhymesAndSongs;
+
+  return (
+    <div>
+      <SectionHeader emoji="🎵" title="Rhyme & Song Time!" sub="Tap a line to practise, or play the whole piece!" />
+
+      {/* Rhymes */}
+      <div style={{ marginBottom: 32 }}>
+        <div style={{ fontSize: 17, fontWeight: 900, color: '#7C3AED', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+          📜 Nursery Rhymes
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {rhymes.map(r => <RhymeCard key={r.title} rhyme={r} />)}
+        </div>
+      </div>
+
+      {/* Songs */}
+      <div>
+        <div style={{ fontSize: 17, fontWeight: 900, color: '#2563EB', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+          🎵 Songs — tap to play!
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          {songs.map(s => <SongCard key={s.title} song={s} />)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════
+//  SHARED UI HELPERS
+// ══════════════════════════════════════════════════════
+function SectionHeader({ emoji, title, sub }) {
+  return (
+    <div style={{ marginBottom: 28 }}>
+      <h2 style={{ fontSize: 28, fontWeight: 900, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 10 }}>
+        {emoji} {title}
+      </h2>
+      <p style={{ fontSize: 16, color: '#64748b', fontWeight: 700, marginTop: 4 }}>{sub}</p>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════════════════════
+//  APP ROOT
+// ══════════════════════════════════════════════════════
+const TABS = [
+  { label: '📞 Greeting', short: 'Greeting' },
+  { label: '💬 Conversation', short: 'Talk' },
+  { label: '🔤 Phonics', short: 'Phonics' },
+  { label: '🎵 Songs', short: 'Songs' },
+];
+
+function App() {
+  const { speak, stop, speakingId, supported } = useTTS();
+  const [tab, setTab] = useState(0);
+
+  const handleTab = (i) => { stop(); setTab(i); };
+
+  const ctxValue = { speakingId };
+
+  return (
+    <SpeakingCtx.Provider value={ctxValue}>
+      <div style={{ maxWidth: 820, margin: '0 auto', padding: '0 16px 72px' }}>
+
+        {/* ── Header ── */}
+        <header style={{ textAlign: 'center', padding: '32px 16px 24px' }}>
+          <div style={{ fontSize: 52, lineHeight: 1 }}>👑</div>
+          <h1 style={{ fontSize: 32, fontWeight: 900, color: '#1e293b', margin: '10px 0 4px' }}>
+            K3 English Phone Practice
+          </h1>
+          <p style={{ fontSize: 16, color: '#64748b', fontWeight: 700 }}>
+            Interactive Telephone Teaching · Fairy Tale World ✨
+          </p>
+        </header>
+
+        {/* ── TTS not supported warning ── */}
+        {!supported && (
+          <div style={{ background: '#FEF2F2', border: '2px solid #FECACA', borderRadius: 14, padding: '14px 18px', marginBottom: 20, fontSize: 17, fontWeight: 700, color: '#DC2626' }}>
+            ⚠️ Your browser doesn't support Text-to-Speech. Please use <strong>Chrome</strong> or <strong>Safari</strong> for the best experience.
+          </div>
+        )}
+
+        {/* ── Tab Navigation ── */}
+        <nav style={{ background: '#fff', borderRadius: 18, padding: 10, boxShadow: '0 2px 16px rgba(0,0,0,.08)', marginBottom: 20 }}>
+          <div className="tab-bar">
+            {TABS.map((t, i) => (
+              <button
+                key={i}
+                onClick={() => handleTab(i)}
+                style={{
+                  flex: '1 1 auto',
+                  padding: '12px 10px',
+                  borderRadius: 12,
+                  fontSize: 16,
+                  fontWeight: 800,
+                  border: 'none',
+                  background: tab === i ? '#1e293b' : 'transparent',
+                  color: tab === i ? '#fff' : '#64748b',
+                  transition: 'all .2s',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </nav>
+
+        {/* ── Content Card ── */}
+        <main style={{ background: '#fff', borderRadius: 24, padding: '32px 28px', boxShadow: '0 4px 28px rgba(0,0,0,.09)' }}>
+          {tab === 0 && <Part1 />}
+          {tab === 1 && <Part2 speak={speak} />}
+          {tab === 2 && <Part3 speak={speak} />}
+          {tab === 3 && <Part4 />}
+        </main>
+
+      </div>
+    </SpeakingCtx.Provider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
