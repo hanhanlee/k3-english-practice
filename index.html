@@ -163,11 +163,11 @@
       width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
       display: flex; align-items: center; justify-content: center; font-size: 22px;
     }
-    .chat-bubble { border-radius: 16px; padding: 11px 14px; max-width: 80%; }
+    .chat-bubble { border-radius: 16px; padding: 11px 14px; max-width: 80%; touch-action: manipulation; -webkit-tap-highlight-color: transparent; transition: background .15s, border-color .15s; }
     .chat-bubble-name { font-size: 14px; font-weight: 700; margin-bottom: 5px; }
     .chat-bubble-text {
       font-size: clamp(17px, 4.5vw, 22px);
-      font-weight: 800; color: #1e293b; line-height: 1.5; margin-bottom: 10px;
+      font-weight: 800; color: #1e293b; line-height: 1.5;
     }
     @media (max-width: 480px) {
       .chat-avatar { width: 36px; height: 36px; font-size: 18px; }
@@ -730,10 +730,23 @@ function SectionHeader({ emoji, title, sub }) {
 function Part1() {
   const T = '#2563EB';
   const S = '#EA580C';
+  const [playingIdx, setPlayingIdx] = useState(null);
+  const audioRef = useRef(null);
+
+  const playLine = (src, idx) => {
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+    if (playingIdx === idx) { setPlayingIdx(null); return; }
+    const audio = new Audio(src);
+    audioRef.current = audio;
+    setPlayingIdx(idx);
+    audio.onended = () => { audioRef.current = null; setPlayingIdx(null); };
+    audio.onerror = () => { audioRef.current = null; setPlayingIdx(null); };
+    audio.play().catch(console.warn);
+  };
 
   return (
     <div>
-      <SectionHeader emoji="📞" title="Answering the Telephone" sub="Listen and practice the phone greeting!" />
+      <SectionHeader emoji="📞" title="Answering the Telephone" sub="Tap a bubble to hear it!" />
 
       <div className="dialogue">
         {DATA.greeting.lines.map((line, i) => {
@@ -742,20 +755,25 @@ function Part1() {
           const bgLight = isT ? '#EFF6FF' : '#FFF7ED';
           const icon    = isT ? '👨‍🏫' : '🧒';
           const name    = isT ? 'Teacher Nick' : 'Student';
+          const playing = playingIdx === i;
           return (
             <div key={i} className={`bubble-row ${isT ? 'is-teacher' : 'is-student'}`}>
               <div className="chat-avatar" style={{ background: color, boxShadow: `0 3px 12px ${color}44` }}>
                 {icon}
               </div>
-              <div className="chat-bubble" style={{
-                background: bgLight,
-                border: `2px solid ${color}33`,
-                borderTopLeftRadius: isT ? 4 : 16,
-                borderTopRightRadius: isT ? 16 : 4,
-              }}>
-                <div className="chat-bubble-name" style={{ color }}>{name}</div>
+              <div
+                className={`chat-bubble${playing ? ' anim-pulse' : ''}`}
+                onClick={() => playLine(line.audio, i)}
+                style={{
+                  background: playing ? color + '22' : bgLight,
+                  border: `2px solid ${playing ? color : color + '33'}`,
+                  borderTopLeftRadius: isT ? 4 : 16,
+                  borderTopRightRadius: isT ? 16 : 4,
+                  cursor: 'pointer',
+                }}
+              >
+                <div className="chat-bubble-name" style={{ color }}>{playing ? '🔊 ' : ''}{name}</div>
                 <div className="chat-bubble-text">{line.text}</div>
-                <AudioBtn src={line.audio} isTeacher={isT} label={`Hear ${name}`} size="sm" />
               </div>
             </div>
           );
