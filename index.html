@@ -199,18 +199,19 @@
       .q-blocks { gap: 14px; }
     }
 
-    /* Teacher question row — stacks vertically on narrow screens */
-    .teacher-q-row { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 10px; }
+    /* Teacher question row */
+    .teacher-q-row { margin-bottom: 10px; }
     .teacher-q-box {
-      flex: 1; background: #EFF6FF;
+      background: #EFF6FF;
       border-radius: 11px; padding: 9px 13px;
+      border: 2px solid #2563EB33;
+      cursor: pointer; touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      transition: background .15s, border-color .15s;
       border: 2px solid #BFDBFE; min-width: 0;
     }
     .teacher-q-label { font-size: 14px; font-weight: 700; color: #2563EB; margin-bottom: 4px; }
     .teacher-q-text  { font-size: clamp(17px, 4vw, 21px); font-weight: 800; color: #1e293b; line-height: 1.4; }
-    @media (max-width: 520px) {
-      .teacher-q-row { flex-direction: column; gap: 8px; }
-    }
 
     .q-hint { font-size: 15px; color: #94a3b8; font-weight: 700; font-style: italic; margin-bottom: 12px; }
 
@@ -228,8 +229,9 @@
     .result-row {
       background: #F0FDF4; border: 2px solid #86EFAC;
       border-radius: 11px; padding: 11px 13px;
-      display: flex; align-items: center; gap: 8px; justify-content: space-between;
-      flex-wrap: wrap;
+      cursor: pointer; touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      transition: background .15s, border-color .15s;
     }
     .result-text {
       font-size: clamp(14px, 3.5vw, 18px);
@@ -816,30 +818,76 @@ function Part2({ speak }) {
 
 function QuestionBlock({ q, speak, selected, onSelect }) {
   const sentence = selected ? q.buildSentence(selected) : null;
+  const [playing, setPlaying] = useState(null); // 'q' | 'ans' | null
+  const audioRef = useRef(null);
+
+  const stopAudio = () => {
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+    setPlaying(null);
+  };
+
+  const playAudio = (src, key) => {
+    stopAudio();
+    if (playing === key) return;
+    const audio = new Audio(src);
+    audioRef.current = audio;
+    setPlaying(key);
+    audio.onended = () => { audioRef.current = null; setPlaying(null); };
+    audio.onerror = () => { audioRef.current = null; setPlaying(null); };
+    audio.play().catch(console.warn);
+  };
+
+  const handleTeacherClick = () => {
+    if (q.qAudio) {
+      playAudio(q.qAudio, 'q');
+    } else {
+      stopAudio();
+      speak(q.qText, true, `q-${q.id}`);
+    }
+  };
 
   const handleSelect = (opt) => {
     onSelect(opt);
+    stopAudio();
     if (opt.audio) {
-      new Audio(opt.audio).play().catch(console.warn);
+      playAudio(opt.audio, 'ans');
     } else {
       speak(q.buildSentence(opt), false, `ans-${q.id}`);
     }
   };
 
+  const handleResultClick = () => {
+    if (!selected) return;
+    if (selected.audio) {
+      playAudio(selected.audio, 'ans');
+    } else {
+      stopAudio();
+      speak(sentence, false, `ans-${q.id}`);
+    }
+  };
+
+  const qActive = playing === 'q';
+  const ansActive = playing === 'ans';
+  const BLUE = '#2563EB';
+  const GREEN = '#15803D';
+
   return (
     <div className="q-block">
-      {/* Teacher question */}
+      {/* Teacher question — tap to hear */}
       <div className="teacher-q-row">
-        <div className="teacher-q-box">
-          <div className="teacher-q-label">
-            👨‍🏫 Teacher asks &nbsp;<span style={{ opacity: .6 }}>{q.ref}</span>
+        <div
+          className={`teacher-q-box${qActive ? ' anim-pulse' : ''}`}
+          onClick={handleTeacherClick}
+          style={{
+            background: qActive ? '#DBEAFE' : '#EFF6FF',
+            border: `2px solid ${qActive ? BLUE : BLUE + '33'}`,
+          }}
+        >
+          <div className="teacher-q-label" style={{ color: BLUE }}>
+            {qActive ? '🔊 ' : '👨‍🏫 '}Teacher asks &nbsp;<span style={{ opacity: .6 }}>{q.ref}</span>
           </div>
           <div className="teacher-q-text">{q.qText}</div>
         </div>
-        {q.qAudio
-          ? <AudioBtn src={q.qAudio} isTeacher={true} label="Hear" size="sm" />
-          : <SpeakBtn text={q.qText} isTeacher={true} speak={speak} id={`q-${q.id}`} label="Hear" size="sm" />
-        }
       </div>
 
       <div className="q-hint">💡 {q.hint}</div>
@@ -868,14 +916,20 @@ function QuestionBlock({ q, speak, selected, onSelect }) {
         })}
       </div>
 
-      {/* Result */}
+      {/* Result — tap to replay */}
       {sentence && (
-        <div key={sentence} className="result-row anim-slideUp">
-          <div className="result-text">🧒 "{sentence}"</div>
-          {selected.audio
-            ? <AudioBtn src={selected.audio} isTeacher={false} label="Again" size="sm" />
-            : <SpeakBtn text={sentence} isTeacher={false} speak={speak} id={`ans-${q.id}`} label="Again" size="sm" />
-          }
+        <div
+          key={sentence}
+          className="result-row anim-slideUp"
+          onClick={handleResultClick}
+          style={{
+            background: ansActive ? '#DCFCE7' : '#F0FDF4',
+            borderColor: ansActive ? GREEN : '#86EFAC',
+          }}
+        >
+          <div className="result-text" style={{ color: GREEN }}>
+            {ansActive ? '🔊 ' : '🧒 '}"{sentence}"
+          </div>
         </div>
       )}
     </div>
